@@ -30,7 +30,7 @@ function provide(p::CallableProvider, result::Type, storage, source)
     end
     return quote
         if isnothing($storage)
-            $storage = $p.call($([source(i) for i in p.inputs]...))
+            $storage = $(p.call)($([source(i) for i in p.inputs]...))
         end
         something($storage)
     end
@@ -134,7 +134,7 @@ macro provider(func::Expr)
             return quote
                 Core.@__doc__ $(esc(new_function))
 
-                local definition = CallableProvider(
+                local definition = $Glue.CallableProvider(
                     $name,
                     Base.Docs.doc(Base.Docs.Binding($__module__, $(QuoteNode(sig.name)))),
                     ($(inputs...),),
@@ -153,24 +153,27 @@ macro provider(func::Expr)
             name = esc(name)
             inputs = map(esc, inputs)
             output = esc(output)
+            docname = gensym(:doc)
             return quote
-                Core.@__doc__ local doc = nothing
-                local definition = Glue.CallableProvider(
+                Core.@__doc__ $(esc(docname))() = nothing
+                local definition = $Glue.CallableProvider(
                     $name,
-                    (@doc doc),
+                    Base.Docs.doc(Base.Docs.Binding($__module__, $(QuoteNode(docname)))),
                     ($(inputs...),),
                     $output,
                 )
+                Base.delete_method(Base.which($(esc(docname)), ()))
 
                 function Glue.describe_provider(::typeof($name))
                     return definition
                 end
 
-                Glue.is_provider(::typeof($name)) = true
+                $Glue.is_provider(::typeof($name)) = true
             end
         end
         # Match the expression format of a provider alias
         Expr(:(=), [name, Expr(:(::), [Expr(:call, [alias, inputs...]), output])]) => begin
+            qname = QuoteNode(name)
             name = esc(name)
             alias = esc(alias)
             inputs = map(esc, inputs)
@@ -179,20 +182,19 @@ macro provider(func::Expr)
             return quote
 
                 Core.@__doc__ $name(args...) = $alias(args...)
-                Core.@__doc__ local doc = nothing
 
-                local definition = Glue.CallableProvider(
+                local definition = $Glue.CallableProvider(
                     $name,
-                    (@doc $name),
+                    Base.Docs.doc(Base.Docs.Binding($__module__, $qname)),
                     ($(inputs...),),
                     $output,
                 )
 
-                function Glue.describe_provider(::typeof($name))
+                function $Glue.describe_provider(::typeof($name))
                     return definition
                 end
 
-                Glue.is_provider(::typeof($name)) = true
+                $Glue.is_provider(::typeof($name)) = true
             end
         end
         _ => throw(DomainError(func, "Can't make provider with given definition"))

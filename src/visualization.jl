@@ -16,7 +16,13 @@ end
 
 function visualize!(g::Grph, p::CallableProvider)
     id = as_id(p.call)
-    g |> node(id; shape = "rectangle", label = "$id\n$(short_description(p))")
+    descr = short_description(p)
+    if isnothing(descr)
+        descr = ""
+    else
+        descr ="\n$descr"
+    end
+    g |> node(id; shape = "rectangle", label = "$id$descr")
 
     for inp in p.inputs
         # visualize!(g, inp)

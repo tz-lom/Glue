@@ -31,7 +31,7 @@ function define_algorithm(name, providers_list, args, output)
     set_inputs = []
     for (i, arg) in enumerate(args)
         input = Symbol("input", i)
-        push!(inputs, :($input::$artifact_type($arg)))
+        push!(inputs, :($input::$(artifact_type(arg))))
         push!(set_inputs, :(context[$arg] = $input))
     end
 
