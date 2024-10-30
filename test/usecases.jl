@@ -4,7 +4,7 @@ using Test
 
 module Utils
 
-export verifyEquals, verifySvg
+export verifyEquals, verifyVisualization
 
 using InteractiveUtils: code_native
 using Test
@@ -63,15 +63,15 @@ function verifyEquals(generated, expected, arguments...)
 end
 
 
-function verifySvg(to_visualize, expected)
+function verifyVisualization(to_visualize, expected)
     g = Glue.visualize(to_visualize)
 
     mktemp() do fname, _
-        save(g, fname)
+        save(g, fname, format = "png")
 
         result = read(fname, String)
 
-        expected_path = joinpath(@__DIR__, "svgs", expected * ".svg")
+        expected_path = joinpath(@__DIR__, "visualized", expected * ".png")
 
         cp(fname, expected_path; force = true)
 

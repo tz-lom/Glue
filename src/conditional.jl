@@ -33,14 +33,14 @@ function provide(p::ConditionalProvider, result::Type, storage, source)
         error("$p can't provide $result")
     end
     return quote
-        if isnothing($storage)
-            $storage = if $(source(p.condition))
+        if isnothing($storage[$result])
+            $storage[$result] = if $(source(p.condition))
                 $(source(p.if_true))
             else
                 $(source(p.if_false))
             end
         end
-        something($storage)
+        something($storage[$result])
     end
 end
 
@@ -83,9 +83,9 @@ macro conditional(e::Expr)
                 )
 
                 function Glue.describe_provider(::typeof($name))
-                    return $name  
+                    return $name
                 end
-                
+
                 Glue.is_provider(::typeof($name)) = true
             end
         end

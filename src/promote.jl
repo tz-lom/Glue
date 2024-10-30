@@ -24,10 +24,10 @@ function provide(p::PromoteProvider, result::Type, storage, source)
         error("$p can't provide $result")
     end
     return quote
-        if isnothing($storage)
-            $storage = $(source(p.input))
+        if isnothing($storage[$result])
+            $storage[$result] = $(source(p.input))
         end
-        something($storage)
+        something($storage[$result])
     end
 end
 

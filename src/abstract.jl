@@ -20,6 +20,8 @@ Returns `true` if `x` is declared as a provider and `false` otherwise.
 is_provider(::AbstractProvider) = true
 is_provider(f::Function) = hasmethod(describe_provider, (typeof(f),))
 
+storage(p::AbstractProvider, _) = storage(p)
+
 function collect_providers(lst)
     return map(describe_provider, lst)
 end

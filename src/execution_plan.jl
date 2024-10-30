@@ -5,6 +5,7 @@ struct ExecutionPlan
     artifacts::Set{Type{<:Artifact}}
     inputs::Set{Type{<:Artifact}}
     outputs::Set{Type{<:Artifact}}
+    can_generate::Set{Type{<:Artifact}}
 
     function ExecutionPlan(providers)
         provider_for_artifact = Dict{Type{<:Artifact},AbstractProvider}()
@@ -29,6 +30,22 @@ struct ExecutionPlan
         outputs = setdiff(output_set, input_set)
 
 
-        return new(Set(providers), provider_for_artifact, artifacts, inputs, outputs)
+        return new(
+            Set(providers),
+            provider_for_artifact,
+            artifacts,
+            inputs,
+            outputs,
+            output_set,
+        )
     end
 end
+
+Base.show(io::IO, p::ExecutionPlan) = print(
+    io,
+    """ExecutionPlan
+  inputs = $((p.inputs...,))
+  outputs = $((p.outputs...,))
+  can_generate = $((p.can_generate...,))
+  providers = $((p.providers...,))""",
+)

@@ -1,0 +1,6 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Glue = "d89a494f-3841-4324-82bc-a003799788bd"
+
+[compat]
+Documenter="1.7.0"

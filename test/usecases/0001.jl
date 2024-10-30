@@ -29,7 +29,8 @@ function expected(a::Int)::Int
 end
 
 verifyEquals(generated, expected, 1)
-verifySvg(generated, "0001")
+
+verifyVisualization(generated, "0001")
 
 
 end

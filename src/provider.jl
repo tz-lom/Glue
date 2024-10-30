@@ -24,15 +24,18 @@ outputs(p::CallableProvider) = (p.output,)
 storage(p::CallableProvider) = p.output
 short_description(p::CallableProvider) = extract_short_description(p.doc)
 
+Base.show(io::IO, p::CallableProvider) =
+    print(io, "CallableProvider $(nameof(p.call)) [$(p.inputs...)]->$(p.output)")
+
 function provide(p::CallableProvider, result::Type, storage, source)
     if (p.output != result)
         error("$p can't provide $result")
     end
     return quote
-        if isnothing($storage)
-            $storage = $(p.call)($([source(i) for i in p.inputs]...))
+        if isnothing($storage[$result])
+            $storage[$result] = $(p.call)($([source(i) for i in p.inputs]...))
         end
-        something($storage)
+        something($storage[$result])
     end
 end
 
@@ -148,6 +151,11 @@ macro provider(func::Expr)
                 Glue.is_provider(::typeof($name)) = true
             end
         end
+        # Match the expression format of a short function definition
+        Expr(:(=), [Expr(:(::), [Expr(:call, [args]), results]), body]) => begin
+
+        end
+
         # Match the expression format of a pre-defined function with inputs and output
         Expr(:(::), [Expr(:call, [name, inputs...]), output]) => begin
             name = esc(name)

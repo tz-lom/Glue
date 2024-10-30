@@ -11,6 +11,10 @@ inputs(p::AlgorithmProvider) = p.inputs
 outputs(p::AlgorithmProvider) = (p.output,)
 storage(p::AlgorithmProvider) = p.context
 
+# function provide(p::AlgorithmProvider, result, context, source)
+# @warn "alg provide" result context source
+# return source(result)
+# end
 
 function define_algorithm(name, providers_list, args, output)
     name! = Symbol(name, "!")
@@ -23,7 +27,12 @@ function define_algorithm(name, providers_list, args, output)
         push!(artifacts, arg)
     end
     for provider in providers
-        push!(artifacts, storage(provider))
+        storage_container = storage(provider)
+        if typeof(storage_container) <: Set
+            union!(artifacts, storage(provider))
+        else
+            push!(artifacts, storage_container)
+        end
     end
 
 
@@ -38,13 +47,11 @@ function define_algorithm(name, providers_list, args, output)
     plan = ExecutionPlan(providers)
 
     function source(artifact)
-
-        # @warn "src" artifact plan
         if artifact in args
             return :(something(context[$artifact]))
         else
             provider = plan.provider_for_artifact[artifact]
-            return provide(provider, artifact, :(context[$(storage(provider))]), source)
+            return provide(provider, artifact, :context, source)
         end
     end
 
@@ -72,7 +79,7 @@ function define_algorithm(name, providers_list, args, output)
 
         const $provider = $AlgorithmProvider($name, $ctx_name, $args, $output, $providers)
 
-        $Glue.describe_provider($name) = $provider
+        $Glue.describe_provider(::typeof($name)) = $provider
 
     end
 end

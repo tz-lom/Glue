@@ -1,4 +1,4 @@
-module TestCase0002
+module TestCase0006
 
 using ..Utils
 using Glue
@@ -24,7 +24,9 @@ end
 @conditional C1::A4 = B1 ? A2 : A3
 
 
-@algorithm generated[P1, P2, C1](A1, B1)::A4
+@group G1 P1 P2 C1
+
+@algorithm generated[G1](A1, B1)::A4
 
 
 function expected(a::Int, b::Bool)
@@ -39,7 +41,7 @@ end
 verifyEquals(generated, expected, 1, false)
 verifyEquals(generated, expected, 1, true)
 
-verifyVisualization(generated, "0002")
+verifyVisualization(generated, "0006")
 
 
 end

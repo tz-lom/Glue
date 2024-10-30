@@ -20,7 +20,7 @@ function visualize!(g::Grph, p::CallableProvider)
     if isnothing(descr)
         descr = ""
     else
-        descr ="\n$descr"
+        descr = "\n$descr"
     end
     g |> node(id; shape = "rectangle", label = "$id$descr")
 
@@ -98,6 +98,27 @@ function visualize!(g::Grph, p::PromoteProvider)
     g |> node(id; shape = "rpromoter", label = id)
     g |> edge(as_id(p.input), id)
     g |> edge(id, as_id(p.output))
+end
+
+function visualize!(g::Grph, p::GroupProvider)
+    id = "@todo grp"
+
+    sub = subgraph(g, "cluster_group_$id#aside"; label = "Group $id")
+    for provider in p.plan.providers
+        visualize!(sub, provider)
+    end
+
+    # g |> node(id; label = id)
+
+    # for inp in inputs(p)
+    #     visualize!(g, inp)
+    #     g |> edge(as_id(inp), id)
+    # end
+    # for out in outputs(p)
+    #     visualize!(g, out)
+    #     g |> edge(id, as_id(out))
+    # end
+
 end
 
 function visualize(p::AbstractProvider)

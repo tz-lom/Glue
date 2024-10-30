@@ -1,6 +1,6 @@
 module Glue
 
-export @artifact, @provider, @conditional, @promote, @algorithm, @compose
+export @artifact, @provider, @conditional, @promote, @algorithm, @compose, @group
 
 import Base
 using Match
@@ -15,6 +15,8 @@ include("context.jl")
 include("conditional.jl")
 include("composed.jl")
 include("promote.jl")
+
+include("group.jl")
 
 include("algorithm.jl")
 
