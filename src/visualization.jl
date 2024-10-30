@@ -62,7 +62,9 @@ function visualize!(g::Grph, p::AlgorithmProvider)
         visualize!(sub_inputs, inp)
     end
 
-    visualize!(sub, p.output)
+    sub_outputs = subgraph(sub, "cluster_$(id)_outputs", label = "Outputs")
+
+    visualize!(sub_outputs, p.output)
 
     for provider in p.providers
         visualize!(sub, provider)
