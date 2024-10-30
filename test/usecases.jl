@@ -63,7 +63,7 @@ function verifyEquals(generated, expected, arguments...)
 end
 
 
-function verifyVisualization(to_visualize, expected)
+function verifyVisualization(to_visualize, expected, update = false)
     g = Glue.visualize(to_visualize)
 
     mktemp() do fname, _
@@ -73,7 +73,9 @@ function verifyVisualization(to_visualize, expected)
 
         expected_path = joinpath(@__DIR__, "visualized", expected * ".png")
 
-        cp(fname, expected_path; force = true)
+        if update
+            cp(fname, expected_path; force = true)
+        end
 
         expected_str = read(expected_path, String)
         @test result == expected_str
