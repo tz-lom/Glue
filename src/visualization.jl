@@ -74,12 +74,22 @@ end
 function visualize!(g::Grph, p::ComposedProvider)
     id = as_id(p.call)
 
-    sub = subgraph(g, "cluster_$id#aside"; label = "$id implementation")
+    sub_id = "cluster_composed_$(id)"
+    sub = subgraph(g, sub_id; label = "$id implementation")
     for provider in p.plan.providers
         visualize!(sub, provider)
     end
 
     g |> node(id; label = id)
+
+    g |> edge(
+        id,
+        as_id(first(p.plan.inputs)),
+        lhead = sub_id,
+        arrowhead = "none",
+        style = "dotted",
+        constraint = "false",
+    )
 
     for inp in inputs(p)
         visualize!(g, inp)
@@ -124,7 +134,7 @@ function visualize!(g::Grph, p::GroupProvider)
 end
 
 function visualize(p::AbstractProvider)
-    g = digraph()
+    g = digraph(compound = "true")
     visualize!(g, p)
     return g
 end

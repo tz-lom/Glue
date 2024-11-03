@@ -63,7 +63,11 @@ function verifyEquals(generated, expected, arguments...)
 end
 
 
-function verifyVisualization(to_visualize, expected, update = false)
+function verifyVisualization(
+    to_visualize,
+    expected,
+    update = haskey(ENV, "UPDATE_VISUAL_TESTS"),
+)
     g = Glue.visualize(to_visualize)
 
     mktemp() do fname, _
