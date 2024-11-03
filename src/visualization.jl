@@ -1,4 +1,4 @@
-using GraphvizDotLang: GraphvizDotLang, Graph, digraph, edge, node, attr, subgraph
+using GraphvizDotLang: GraphvizDotLang, Graph, digraph, edge, attr, subgraph
 import GraphViz
 
 const Grph = Union{GraphvizDotLang.Graph,GraphvizDotLang.Subgraph}
@@ -9,9 +9,34 @@ as_id(f::Function) = String(Symbol(parentmodule(f), '.', f))
 as_id(t::Type) = String(Symbol(t))
 as_id(s::Symbol) = String(s)
 
+function node(id::String, port::Union{String,Nothing} = nothing; kwargs...)
+    g -> begin
+
+        nid = GraphvizDotLang.NodeId(id, port)
+        nd = findfirst(
+            el -> typeof(el) === GraphvizDotLang.NodeStmt && el.id == nid,
+            g.stmt_list,
+        )
+
+        if nd === nothing
+            g |> GraphvizDotLang.node(id, port; kwargs...)
+        end
+        g
+    end
+end
+
+
 function visualize!(g::Grph, a::Type{<:Artifact})
     id = as_id(a)
-    g |> node(as_id(a), ; shape = "ellipse", label = "$id\n$(artifact_type(a))")
+    g |> node(
+        as_id(a),
+        ;
+        shape = "ellipse",
+        label = "$id\n$(artifact_type(a))",
+        style = "filled",
+        color = "#4a7c59",
+        fillcolor = "#8fc0a9",
+    )
 end
 
 function visualize!(g::Grph, p::CallableProvider)
@@ -22,29 +47,43 @@ function visualize!(g::Grph, p::CallableProvider)
     else
         descr = "\n$descr"
     end
-    g |> node(id; shape = "rectangle", label = "$id$descr")
+    g |> node(
+        id;
+        shape = "rectangle",
+        label = "$id$descr",
+        style = "filled",
+        color = "#ff8c61",
+        fillcolor = "#faa275",
+    )
 
     for inp in p.inputs
-        # visualize!(g, inp)
+        visualize!(g, inp)
         g |> edge(as_id(inp), id)
     end
 
-    # visualize!(g, p.output)
+    visualize!(g, p.output)
     g |> edge(id, as_id(p.output))
 end
 
 function visualize!(g::Grph, p::ConditionalProvider)
     id = as_id(p.name)
-    g |> node(id; shape = "diamond", label = "$id")
+    g |> node(
+        id;
+        shape = "diamond",
+        label = "$id",
+        style = "filled",
+        color = "#b23a48",
+        fillcolor = "#fcb902",
+    )
 
 
-    # visualize!(g, p.condition)
+    visualize!(g, p.condition)
     g |> edge(as_id(p.condition), id; label = "?")
 
-    # visualize!(g, p.if_true)
+    visualize!(g, p.if_true)
     g |> edge(as_id(p.if_true), id; label = "true")
 
-    # visualize!(g, p.if_false)
+    visualize!(g, p.if_false)
     g |> edge(as_id(p.if_false), id; label = "false")
 
     visualize!(g, p.output)
@@ -56,13 +95,15 @@ function visualize!(g::Grph, p::AlgorithmProvider)
 
     sub = g #subgraph(g, "cluster_" * id; label = id)
 
-    sub_inputs = subgraph(sub, "cluster_" * id * "inputs"; label = "Inputs")
+    sub_inputs =
+        subgraph(sub, "cluster_" * id * "inputs"; label = "Inputs", style = "dashed")
 
     for inp in p.inputs
         visualize!(sub_inputs, inp)
     end
 
-    sub_outputs = subgraph(sub, "cluster_$(id)_outputs", label = "Outputs")
+    sub_outputs =
+        subgraph(sub, "cluster_$(id)_outputs", label = "Outputs", style = "dashed")
 
     visualize!(sub_outputs, p.output)
 
@@ -76,11 +117,41 @@ function visualize!(g::Grph, p::ComposedProvider)
 
     sub_id = "cluster_composed_$(id)"
     sub = subgraph(g, sub_id; label = "$id implementation")
+
+    for inp in p.inputs
+        sub |> node(
+            as_id(inp[1]);
+            shape = "ellipse",
+            label = "$(as_id(inp[1]))\n⇤ $(as_id(inp[2]))\n$(artifact_type(inp[1]))",
+            style = "filled",
+            color = "#5c374c",
+            fillcolor = "#985277",
+        )
+    end
+
+    for inp in p.outputs
+        sub |> node(
+            as_id(inp[2]);
+            shape = "ellipse",
+            label = "$(as_id(inp[2]))\n⇥ $(as_id(inp[1]))\n$(artifact_type(inp[2]))",
+            style = "filled",
+            color = "#5c374c",
+            fillcolor = "#985277",
+        )
+    end
+
     for provider in p.plan.providers
         visualize!(sub, provider)
     end
 
-    g |> node(id; label = id)
+    g |> node(
+        id;
+        label = id,
+        shape = "component",
+        style = "filled",
+        color = "#5c374c",
+        fillcolor = "#985277",
+    )
 
     g |> edge(
         id,
@@ -107,7 +178,14 @@ function visualize!(g::Grph, p::PromoteProvider)
     visualize!(g, p.input)
     visualize!(g, p.output)
 
-    g |> node(id; shape = "rpromoter", label = id)
+    g |> node(
+        id;
+        shape = "rpromoter",
+        label = id,
+        style = "filled",
+        color = "#e6b89c",
+        fillcolor = "#ead2ac",
+    )
     g |> edge(as_id(p.input), id)
     g |> edge(id, as_id(p.output))
 end
