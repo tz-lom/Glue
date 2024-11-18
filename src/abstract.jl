@@ -2,6 +2,8 @@ using Markdown
 
 abstract type AbstractProvider end
 
+abstract type ProviderModifier end
+
 
 """
     describe_provider(x)::AbstractProvider
@@ -20,10 +22,23 @@ Returns `true` if `x` is declared as a provider and `false` otherwise.
 is_provider(::AbstractProvider) = true
 is_provider(f::Function) = hasmethod(describe_provider, (typeof(f),))
 
+is_modifier(_) = false
+is_modifier(::ProviderModifier) = true
+
 storage(p::AbstractProvider, _) = storage(p)
 
+function apply_modification end
+
 function collect_providers(lst)
-    return map(describe_provider, lst)
+    modifiers = filter(is_modifier, lst)
+
+    providers = map(describe_provider, filter(!is_modifier, lst))
+
+    for mod in modifiers
+        providers = map(p -> apply_modification(mod, p), providers)
+    end
+
+    return providers
 end
 
 function extract_short_description(doc::Markdown.MD)

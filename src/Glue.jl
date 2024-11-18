@@ -1,7 +1,14 @@
 module Glue
 
 export @artifact,
-    @provider, @conditional, @promote, @algorithm, @compose, @group, @unimplemented
+    @provider,
+    @conditional,
+    @promote,
+    @algorithm,
+    @compose,
+    @group,
+    @unimplemented,
+    substitute
 
 import Base
 using Match
@@ -21,6 +28,10 @@ include("unimplemented.jl")
 include("group.jl")
 
 include("algorithm.jl")
+
+
+include("substitute.jl")
+
 
 # @todo: extract into submodule
 include("visualization.jl")

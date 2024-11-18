@@ -10,6 +10,10 @@ storage(p::GroupProvider) = p.plan.can_generate
 storage(::GroupProvider, artifact) = artifact
 # short_description(p::GroupProvider) = extract_short_description(p.doc)
 
+function Base.:(==)(left::GroupProvider, right::GroupProvider)
+    return left.plan.providers == right.plan.providers
+end
+
 function provide(p::GroupProvider, result::Type, context, source)
     function inner_source(artifact)
         if artifact in p.plan.can_generate
