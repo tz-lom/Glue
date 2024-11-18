@@ -14,6 +14,8 @@ using Test
     A1,
 )::A2
 
+verifyVisualization([U1], "0008")
+
 
 
 end

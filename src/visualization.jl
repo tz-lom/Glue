@@ -65,6 +65,33 @@ function visualize!(g::Grph, p::CallableProvider)
     g |> edge(id, as_id(p.output))
 end
 
+
+function visualize!(g::Grph, p::UnimplementedProvider)
+    id = as_id(p.call)
+    descr = short_description(p)
+    if isnothing(descr)
+        descr = ""
+    else
+        descr = "\n$descr"
+    end
+    g |> node(
+        id;
+        shape = "hexagon",
+        label = "$id$descr",
+        style = "filled",
+        color = "#ff8c61",
+        fillcolor = "#faa275",
+    )
+
+    for inp in p.inputs
+        visualize!(g, inp)
+        g |> edge(as_id(inp), id)
+    end
+
+    visualize!(g, p.output)
+    g |> edge(id, as_id(p.output))
+end
+
 function visualize!(g::Grph, p::ConditionalProvider)
     id = as_id(p.name)
     g |> node(
@@ -214,6 +241,13 @@ end
 function visualize(p::AbstractProvider)
     g = digraph(compound = "true")
     visualize!(g, p)
+    return g
+end
+
+function visualize(lst::Vector)
+    providers = collect_providers(lst)
+    g = digraph(compound = "true")
+    foreach(p -> visualize!(g, p), providers)
     return g
 end
 
