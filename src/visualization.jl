@@ -191,7 +191,7 @@ function visualize!(g::Grph, p::PromoteProvider)
 end
 
 function visualize!(g::Grph, p::GroupProvider)
-    id = "@todo grp"
+    id = as_id(p.call)
 
     sub = subgraph(g, "cluster_group_$id#aside"; label = "Group $id")
     for provider in p.plan.providers

@@ -1,17 +1,14 @@
 struct GroupProvider <: AbstractProvider
     # doc::Markdown.MD
     plan::ExecutionPlan
-    container::Type
+    call::Any
 end
 
 inputs(p::GroupProvider) = p.plan.inputs
 outputs(p::GroupProvider) = p.plan.can_generate
-storage(p::GroupProvider) = p.plan.can_generate #p.container
-function storage(p::GroupProvider, artifact)
-    @warn "GS" artifact
-    artifact
-end
-# short_description(p::GroupProvider) = "Group $(typeof(p))"
+storage(p::GroupProvider) = p.plan.can_generate
+storage(::GroupProvider, artifact) = artifact
+# short_description(p::GroupProvider) = extract_short_description(p.doc)
 
 function provide(p::GroupProvider, result::Type, context, source)
     function inner_source(artifact)
@@ -44,7 +41,7 @@ function define_group(name, providers)
         $Glue.@context($ctx_name, $(plan.can_generate...))
 
         function $name() end
-        const $group = $GroupProvider($plan, $ctx_name)
+        const $group = $GroupProvider($plan, $name)
 
         $Glue.describe_provider(::typeof($name)) = $group
     end
