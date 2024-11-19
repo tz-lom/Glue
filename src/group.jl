@@ -34,6 +34,21 @@ function provide(p::GroupProvider, result::Type, context, source)
     end
 end
 
+function apply_modification_iteratively(mod::ProviderModifier, group::GroupProvider)
+    provider = apply_modification(mod, group)
+    if provider == group
+        new_providers =
+            replace(p -> apply_modification_iteratively(mod, p), group.plan.providers)
+        if new_providers != group.plan.providers
+            return GroupProvider(ExecutionPlan(new_providers), group.call)
+        else
+            return group
+        end
+    else
+        return apply_modification_iteratively(mod, provider)
+    end
+end
+
 function define_group(name, providers)
     providers = map(describe_provider, providers)
     ctx_name = Symbol(name, "Context")

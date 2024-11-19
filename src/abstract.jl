@@ -27,7 +27,8 @@ is_modifier(::ProviderModifier) = true
 
 storage(p::AbstractProvider, _) = storage(p)
 
-function apply_modification end
+apply_modification_iteratively(mod::ProviderModifier, p::AbstractProvider) =
+    apply_modification(mod, p)
 
 function collect_providers(lst)
     modifiers = filter(is_modifier, lst)
@@ -35,7 +36,7 @@ function collect_providers(lst)
     providers = map(describe_provider, filter(!is_modifier, lst))
 
     for mod in modifiers
-        providers = map(p -> apply_modification(mod, p), providers)
+        providers = map(p -> apply_modification_iteratively(mod, p), providers)
     end
 
     return providers

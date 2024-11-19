@@ -13,11 +13,11 @@ struct ComposedProvider <: AbstractProvider
 
         input_diff = setdiff(plan.inputs, values(remaps))
         if length(input_diff) > 0
-            error("For compose $name inputs $input_diff are not described")
+            error("For compose $call inputs $input_diff are not described")
         end
         output_diff = setdiff(plan.outputs, keys(remaps))
         if length(output_diff) > 0
-            error("For compose $name outputs $output_diff are not described")
+            error("For compose $call outputs $output_diff are not described")
         end
 
         inputs = Dict(map(i -> i => rremaps[i], collect(plan.inputs)))
@@ -33,6 +33,10 @@ end
 inputs(p::ComposedProvider) = values(p.inputs)
 outputs(p::ComposedProvider) = keys(p.outputs)
 storage(p::ComposedProvider) = Set((p.container, keys(p.outputs)...))
+
+function Base.:(==)(left::ComposedProvider, right::ComposedProvider)
+    return left.plan.providers == right.plan.providers && left.remaps == right.remaps
+end
 
 function provide(p::ComposedProvider, result::Type, context, source)
     function inner_source(artifact)
@@ -65,16 +69,34 @@ function provide(p::ComposedProvider, result::Type, context, source)
     end
 end
 
+
+
+function apply_modification_iteratively(mod::ProviderModifier, composed::ComposedProvider)
+    provider = apply_modification(mod, composed)
+    if provider == composed
+        new_providers =
+            replace(p -> apply_modification_iteratively(mod, p), composed.plan.providers)
+
+        if new_providers != composed.plan.providers
+            return ComposedProvider(
+                composed.call,
+                ExecutionPlan(new_providers),
+                composed.container,
+                composed.remaps,
+            )
+        else
+            return group
+        end
+    else
+        return apply_modification_iteratively(mod, provider)
+    end
+end
+
+
 function define_compose(name, providers)
-
     providers = map(describe_provider, providers)
-
     ctx_name = Symbol(name, "Context")
-
     plan = ExecutionPlan(providers)
-
-
-
 
     return quote
         $Glue.@context($ctx_name, $(plan.artifacts...))
