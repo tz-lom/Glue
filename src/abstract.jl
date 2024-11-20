@@ -31,13 +31,34 @@ apply_modification_iteratively(mod::ProviderModifier, p::AbstractProvider) =
     apply_modification(mod, p)
 
 function collect_providers(lst)
+
+    function super_flatten(arr)
+        rst = Any[]
+        grep(v) =
+            for x in v
+                if isa(x, Tuple) || isa(x, Array)
+                    grep(x)
+                else
+                    push!(rst, x)
+                end
+            end
+        grep(arr)
+        rst
+    end
+
+    # flatten all elements of lst
+
+    lst = super_flatten(lst)
+
     modifiers = filter(is_modifier, lst)
 
-    providers = map(describe_provider, filter(!is_modifier, lst))
+    providers = collect(map(describe_provider, filter(!is_modifier, lst)))
 
     for mod in modifiers
         providers = map(p -> apply_modification_iteratively(mod, p), providers)
     end
+
+    unique!(providers)
 
     return providers
 end

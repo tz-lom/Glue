@@ -1,5 +1,5 @@
 
-module Test_replace
+module Test_substitute
 using Test, Glue
 using Glue: collect_providers, describe_provider
 
@@ -60,6 +60,21 @@ end
 
         @test collect_providers([C1(A1 => AA1, AA2 => A2), substitute(U2, PP1), P2]) ==
               [new_composed, describe_provider(P2)]
+    end
+
+
+    @testset "duplicates are elliminated is expanded correctly" begin
+        expected = [describe_provider(P1), describe_provider(P2)]
+
+        @test collect_providers([P1, P2, P1]) == expected
+
+    end
+
+    @testset "array is expanded correctly" begin
+        a = [[[P1], P2]]
+        expected = [describe_provider(P1), describe_provider(P2)]
+
+        @test collect_providers([a]) == expected
     end
 end
 
