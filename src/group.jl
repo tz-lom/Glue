@@ -57,12 +57,12 @@ function define_group(name, providers)
     group = gensym(:group)
 
     return quote
-        $Glue.@context($ctx_name, $(plan.can_generate...))
+        $FunctionFusion.@context($ctx_name, $(plan.can_generate...))
 
         function $name() end
         const $group = $GroupProvider($plan, $name)
 
-        $Glue.describe_provider(::typeof($name)) = $group
+        $FunctionFusion.describe_provider(::typeof($name)) = $group
     end
 end
 
@@ -75,10 +75,10 @@ macro group(name, providers...)
 
     #     $name(a::$artifact_type($input))::$artifact_type($output) = a
 
-    #     const provider = Glue.PromoteProvider($name, $input, $output)
+    #     const provider = FunctionFusion.PromoteProvider($name, $input, $output)
 
 
-    #     function Glue.describe_provider(::typeof($name))
+    #     function FunctionFusion.describe_provider(::typeof($name))
     #         return provider
     #     end
     # end

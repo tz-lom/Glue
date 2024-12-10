@@ -74,7 +74,7 @@ macro conditional(e::Expr)
             if_false = esc(if_false)
             output = esc(output)
             return quote
-                $name = Glue.ConditionalProvider(
+                $name = FunctionFusion.ConditionalProvider(
                     $sname,
                     $condition,
                     $if_true,
@@ -82,11 +82,11 @@ macro conditional(e::Expr)
                     $output,
                 )
 
-                function Glue.describe_provider(::typeof($name))
+                function FunctionFusion.describe_provider(::typeof($name))
                     return $name
                 end
 
-                Glue.is_provider(::typeof($name)) = true
+                FunctionFusion.is_provider(::typeof($name)) = true
             end
         end
         _ => throw(DomainError(e, "Can't make conditional provider from given definition"))

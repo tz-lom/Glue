@@ -8,7 +8,7 @@ export verifyEquals, verifyVisualization
 
 using InteractiveUtils: code_native
 using Test
-using Glue
+using FunctionFusion
 using GraphvizDotLang: save
 
 function signature(f)
@@ -68,7 +68,7 @@ function verifyVisualization(
     expected,
     update = haskey(ENV, "UPDATE_VISUAL_TESTS"),
 )
-    g = Glue.visualize(to_visualize)
+    g = FunctionFusion.visualize(to_visualize)
 
     mktemp() do fname, _
         save(g, fname, format = "png")

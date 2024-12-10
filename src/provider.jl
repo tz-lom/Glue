@@ -137,18 +137,18 @@ macro provider(func::Expr)
             return quote
                 Core.@__doc__ $(esc(new_function))
 
-                local definition = $Glue.CallableProvider(
+                local definition = $FunctionFusion.CallableProvider(
                     $name,
                     Base.Docs.doc(Base.Docs.Binding($__module__, $(QuoteNode(sig.name)))),
                     ($(inputs...),),
                     $output,
                 )
 
-                function Glue.describe_provider(::typeof($name))
+                function FunctionFusion.describe_provider(::typeof($name))
                     return definition
                 end
 
-                Glue.is_provider(::typeof($name)) = true
+                FunctionFusion.is_provider(::typeof($name)) = true
             end
         end
         # Match the expression format of a short function definition
@@ -164,7 +164,7 @@ macro provider(func::Expr)
             docname = gensym(:doc)
             return quote
                 Core.@__doc__ $(esc(docname))() = nothing
-                local definition = $Glue.CallableProvider(
+                local definition = $FunctionFusion.CallableProvider(
                     $name,
                     Base.Docs.doc(Base.Docs.Binding($__module__, $(QuoteNode(docname)))),
                     ($(inputs...),),
@@ -172,11 +172,11 @@ macro provider(func::Expr)
                 )
                 Base.delete_method(Base.which($(esc(docname)), ()))
 
-                function Glue.describe_provider(::typeof($name))
+                function FunctionFusion.describe_provider(::typeof($name))
                     return definition
                 end
 
-                $Glue.is_provider(::typeof($name)) = true
+                $FunctionFusion.is_provider(::typeof($name)) = true
             end
         end
         # Match the expression format of a provider alias
@@ -191,18 +191,18 @@ macro provider(func::Expr)
 
                 Core.@__doc__ $name(args...) = $alias(args...)
 
-                local definition = $Glue.CallableProvider(
+                local definition = $FunctionFusion.CallableProvider(
                     $name,
                     Base.Docs.doc(Base.Docs.Binding($__module__, $qname)),
                     ($(inputs...),),
                     $output,
                 )
 
-                function $Glue.describe_provider(::typeof($name))
+                function $FunctionFusion.describe_provider(::typeof($name))
                     return definition
                 end
 
-                $Glue.is_provider(::typeof($name)) = true
+                $FunctionFusion.is_provider(::typeof($name)) = true
             end
         end
         _ => throw(DomainError(func, "Can't make provider with given definition"))

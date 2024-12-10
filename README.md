@@ -1,4 +1,4 @@
-# Glue.jl
+# FunctionFusion.jl
 
 Algorithm composition framework which implements data driven algorithm construction.
 

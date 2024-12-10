@@ -1,4 +1,4 @@
-module Glue
+module FunctionFusion
 
 export @artifact,
     @provider,
@@ -39,4 +39,4 @@ include("visualization.jl")
 
 
 
-end # module Glue
+end # module FunctionFusion

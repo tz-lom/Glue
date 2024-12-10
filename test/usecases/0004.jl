@@ -4,7 +4,7 @@ using ..Utils
 
 # using Test
 
-using Glue
+using FunctionFusion
 
 @artifact A1 = Int
 @artifact A2 = Int

@@ -51,18 +51,18 @@ macro unimplemented(func::Expr)
             return quote
                 Core.@__doc__ $(name)() =
                     $provide($describe_provider($name), nothing, nothing, nothing)
-                local definition = $Glue.UnimplementedProvider(
+                local definition = $FunctionFusion.UnimplementedProvider(
                     $name,
                     Base.Docs.doc(Base.Docs.Binding($__module__, $sname)),
                     ($(inputs...),),
                     $output,
                 )
 
-                function Glue.describe_provider(::typeof($name))
+                function FunctionFusion.describe_provider(::typeof($name))
                     return definition
                 end
 
-                $Glue.is_provider(::typeof($name)) = true
+                $FunctionFusion.is_provider(::typeof($name)) = true
             end
         end
         _ => throw(

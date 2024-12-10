@@ -15,11 +15,11 @@ struct ExecutionPlan
         output_set = Set{Type{<:Artifact}}()
 
         for provider in providers
-            for input in Glue.inputs(provider)
+            for input in FunctionFusion.inputs(provider)
                 push!(input_set, input)
             end
 
-            for output in Glue.outputs(provider)
+            for output in FunctionFusion.outputs(provider)
                 provider_for_artifact[output] = provider
                 push!(output_set, output)
             end

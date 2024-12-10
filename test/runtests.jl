@@ -1,4 +1,4 @@
-using Test, Glue
+using Test, FunctionFusion
 
 @testset "" verbose = true begin
     include("artifact_and_provider_definitions_test.jl")

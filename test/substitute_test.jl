@@ -1,7 +1,7 @@
 
 module Test_substitute
-using Test, Glue
-using Glue: collect_providers, describe_provider
+using Test, FunctionFusion
+using FunctionFusion: collect_providers, describe_provider
 
 @artifact A1, A2, A3, AA1, AA2 = Int
 
@@ -41,7 +41,8 @@ end
         p1 = describe_provider(P1)
         g1 = describe_provider(G1)
 
-        new_group = Glue.GroupProvider(Glue.ExecutionPlan([p1]), g1.call)
+        new_group =
+            FunctionFusion.GroupProvider(FunctionFusion.ExecutionPlan([p1]), g1.call)
 
         @test collect_providers([G1, substitute(U1, P1), P2]) ==
               [new_group, describe_provider(P2)]
@@ -51,9 +52,9 @@ end
         pp1 = describe_provider(PP1)
         c1 = describe_provider(C1(A1 => AA1, AA2 => A2))
 
-        new_composed = Glue.ComposedProvider(
+        new_composed = FunctionFusion.ComposedProvider(
             c1.call,
-            Glue.ExecutionPlan([pp1]),
+            FunctionFusion.ExecutionPlan([pp1]),
             c1.container,
             c1.remaps,
         )

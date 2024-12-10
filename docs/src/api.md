@@ -1,6 +1,6 @@
 # Public interfaces
 
 ```@autodocs
-Modules = [Glue]
+Modules = [FunctionFusion]
 Order   = [:module, :constant, :type, :function, :macro]
 ```

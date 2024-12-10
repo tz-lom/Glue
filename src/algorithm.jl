@@ -29,7 +29,7 @@ function define_algorithm(name, providers_list, args, output)
     for provider in providers
         storage_container = storage(provider)
         if typeof(storage_container) <: Set
-            union!(artifacts, storage(provider))
+            union!(artifacts, storage_container)
         else
             push!(artifacts, storage_container)
         end
@@ -61,7 +61,7 @@ function define_algorithm(name, providers_list, args, output)
 
     return quote
 
-        $Glue.@context($ctx_name, $(artifacts...))
+        $FunctionFusion.@context($ctx_name, $(artifacts...))
 
         function $name($(inputs...))
             local context = $ctx_name()
@@ -79,7 +79,7 @@ function define_algorithm(name, providers_list, args, output)
 
         const $provider = $AlgorithmProvider($name, $ctx_name, $args, $output, $providers)
 
-        $Glue.describe_provider(::typeof($name)) = $provider
+        $FunctionFusion.describe_provider(::typeof($name)) = $provider
 
     end
 end

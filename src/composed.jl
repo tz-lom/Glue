@@ -93,63 +93,57 @@ function apply_modification_iteratively(mod::ProviderModifier, composed::Compose
 end
 
 
-function define_compose(name, providers)
+function define_template(name, providers)
     providers = map(describe_provider, providers)
-    ctx_name = Symbol(name, "Context")
     plan = ExecutionPlan(providers)
 
     return quote
-        $Glue.@context($ctx_name, $(plan.artifacts...))
-
-        function $name(remaps...)
-            $ComposedProvider($name, $plan, $ctx_name, remaps)
+        function $name()
+            return $plan
         end
+    end
+end
 
-        # const $provider =
-        # $ComposedProvider($name, $plan, $ctx_name, $remaps, $inputs, $outputs)
+function implement_template(plan, name, remaps)
+    ctx_name = Symbol(name, "Context")
 
-        # $Glue.describe_provider($name) = $provider
+    return quote
+        $FunctionFusion.@context($ctx_name, $(plan.artifacts...))
+        function $name()
+            return $ComposedProvider($name, $plan, $ctx_name, $remaps)
+        end
+        $FunctionFusion.describe_provider($name) = $name()
     end
 end
 
 """
-    @compose name(providers...) where (ExternalInput=>InternalInput, InternalOutput=>ExternalOutput)
+    @template name providers...
 
 Encapsulates algorithm for the re-use in many places
 @todo: write better documentation when functionality is stable
 """
-macro compose(name, providers...)
+macro template(name, providers...)
     return quote
         Base.eval(
             $__module__,
-            $Glue.define_compose($(QuoteNode(name)), ($(map(esc, providers)...),)),
+            $FunctionFusion.define_template(
+                $(QuoteNode(name)),
+                ($(map(esc, providers)...),),
+            ),
         )
     end
-    # @match expr begin
-    #     Expr(:where, [Expr(:ref, [name, providers...]), Expr(:tuple, [remaps...])]) => begin
-    #         return quote
-    #             Base.eval(
-    #                 $__module__,
-    #                 define_compose(
-    #                     $(QuoteNode(name)),
-    #                     ($(map(esc, providers)...),),
-    #                     ($(map(esc, remaps)...),),
-    #                 ),
-    #             )
-    #         end
-    #     end
-    #     Expr(:where, [Expr(:ref, [name, providers...]), remap]) => begin
-    #         return quote
-    #             Base.eval(
-    #                 $__module__,
-    #                 define_compose(
-    #                     $(QuoteNode(name)),
-    #                     ($(map(esc, providers)...),),
-    #                     ($(map(esc, remap)),),
-    #                 ),
-    #             )
-    #         end
-    #     end
-    #     _ => error("Unsupported syntax: $(expr)")
-    # end
+end
+
+
+macro implement(name, template_name, remaps...)
+    return quote
+        Base.eval(
+            $__module__,
+            $FunctionFusion.implement_template(
+                $(esc(template_name))(),
+                $(QuoteNode(name)),
+                ($(map(esc, remaps)...),),
+            ),
+        )
+    end
 end

@@ -1,7 +1,7 @@
 module TestCase0006
 
 using ..Utils
-using Glue
+using FunctionFusion
 
 @artifact A1 = Int
 @artifact A2 = Int
