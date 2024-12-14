@@ -21,7 +21,9 @@ end
 
 @unimplemented U2(AA1)::AA2
 
-@compose C1 U2
+@template C1 U2
+
+@implement C1_impl C1 A1 => AA1 AA2 => A2
 
 @group G1 U1
 
@@ -50,7 +52,7 @@ end
 
     @testset "composed is handled correctly" begin
         pp1 = describe_provider(PP1)
-        c1 = describe_provider(C1(A1 => AA1, AA2 => A2))
+        c1 = describe_provider(C1_impl)
 
         new_composed = FunctionFusion.ComposedProvider(
             c1.call,
@@ -59,7 +61,7 @@ end
             c1.remaps,
         )
 
-        @test collect_providers([C1(A1 => AA1, AA2 => A2), substitute(U2, PP1), P2]) ==
+        @test collect_providers([C1_impl, substitute(U2, PP1), P2]) ==
               [new_composed, describe_provider(P2)]
     end
 

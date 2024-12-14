@@ -5,6 +5,7 @@ using Test, FunctionFusion
 
     include("context_test.jl")
     include("substitute_test.jl")
+    include("provider.jl")
 
     include("usecases.jl")
 

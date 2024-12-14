@@ -18,11 +18,12 @@ end
 @artifact F1_in = Int
 @artifact F1_out = Int
 
-@compose C1 P1 P2
+@template C1 P1 P2
+@implement C1_impl C1 F1_in => A1 A3 => F1_out
 # where {(F1_in => A1, A3 => F1_out)}
 
 
-@algorithm generated[C1(F1_in => A1, A3 => F1_out)](F1_in)::F1_out
+@algorithm generated[C1_impl](F1_in)::F1_out
 
 function expected(a::Int)::Int
     return (a + 1) * 10

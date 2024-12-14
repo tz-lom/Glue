@@ -25,7 +25,7 @@ storage(p::CallableProvider) = p.output
 short_description(p::CallableProvider) = extract_short_description(p.doc)
 
 Base.show(io::IO, p::CallableProvider) =
-    print(io, "CallableProvider $(nameof(p.call)) [$(p.inputs...)]->$(p.output)")
+    print(io, "CallableProvider $(nameof(p.call))$(p.inputs)::$(p.output)")
 
 function provide(p::CallableProvider, result::Type, storage, source)
     if (p.output != result)
@@ -102,14 +102,14 @@ All inputs + output must be unique artifacts.
 
 """
 macro provider(func::Expr)
+    # Helper function to extract the artifact type
+    extract_type = (type) -> :($artifact_type($type))
+
     @match func begin
         # Match the expression format of a function definition
         Expr(:function, _) => begin
             # Read the function signature
             sig = read_function_signature(func)
-
-            # Helper function to extract the artifact type
-            extract_type = (type) -> :($artifact_type($type))
 
             # Create a new function signature with artifact types
             new_signature = Expr(
@@ -144,16 +144,41 @@ macro provider(func::Expr)
                     $output,
                 )
 
-                function FunctionFusion.describe_provider(::typeof($name))
+                function $FunctionFusion.describe_provider(::typeof($name))
                     return definition
                 end
 
-                FunctionFusion.is_provider(::typeof($name)) = true
+                $FunctionFusion.is_provider(::typeof($name)) = true
             end
         end
         # Match the expression format of a short function definition
-        Expr(:(=), [Expr(:(::), [Expr(:call, [args]), results]), body]) => begin
+        Expr(:(=), [Expr(:(::), [Expr(:call, [name, args...]), result]), body]) => begin
+            new_args =
+                map((arg,) -> Expr(:(::), arg.args[1], extract_type(arg.args[2])), args)
+            inputs = map((arg) -> esc(arg.args[2]), args)
+            output = extract_type(result)
 
+            esc_name = esc(name)
+
+            new_function =
+                Expr(:(=), Expr(:(::), Expr(:call, name, new_args...), output), body)
+
+            return quote
+                Core.@__doc__ $(esc(new_function))
+
+                local definition = $FunctionFusion.CallableProvider(
+                    $esc_name,
+                    Base.Docs.doc(Base.Docs.Binding($__module__, $(QuoteNode(name)))),
+                    ($(inputs...),),
+                    $(esc(result)),
+                )
+
+                function $FunctionFusion.describe_provider(::typeof($esc_name))
+                    return definition
+                end
+
+                $FunctionFusion.is_provider(::typeof($esc_name)) = true
+            end
         end
 
         # Match the expression format of a pre-defined function with inputs and output
@@ -172,7 +197,7 @@ macro provider(func::Expr)
                 )
                 Base.delete_method(Base.which($(esc(docname)), ()))
 
-                function FunctionFusion.describe_provider(::typeof($name))
+                function $FunctionFusion.describe_provider(::typeof($name))
                     return definition
                 end
 

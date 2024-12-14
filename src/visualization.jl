@@ -26,7 +26,7 @@ function node(id::String, port::Union{String,Nothing} = nothing; kwargs...)
 end
 
 
-function visualize!(g::Grph, a::Type{<:Artifact})
+function visualize!(g::Grph, a::Type{<:Artifact}, _)
     id = as_id(a)
     g |> node(
         as_id(a),
@@ -39,7 +39,7 @@ function visualize!(g::Grph, a::Type{<:Artifact})
     )
 end
 
-function visualize!(g::Grph, p::CallableProvider)
+function visualize!(g::Grph, p::CallableProvider, root::Graph)
     id = as_id(p.call)
     descr = short_description(p)
     if isnothing(descr)
@@ -57,16 +57,16 @@ function visualize!(g::Grph, p::CallableProvider)
     )
 
     for inp in p.inputs
-        visualize!(g, inp)
+        visualize!(g, inp, root)
         g |> edge(as_id(inp), id)
     end
 
-    visualize!(g, p.output)
+    visualize!(g, p.output, root)
     g |> edge(id, as_id(p.output))
 end
 
 
-function visualize!(g::Grph, p::UnimplementedProvider)
+function visualize!(g::Grph, p::UnimplementedProvider, root::Graph)
     id = as_id(p.call)
     descr = short_description(p)
     if isnothing(descr)
@@ -84,15 +84,15 @@ function visualize!(g::Grph, p::UnimplementedProvider)
     )
 
     for inp in p.inputs
-        visualize!(g, inp)
+        visualize!(g, inp, root)
         g |> edge(as_id(inp), id)
     end
 
-    visualize!(g, p.output)
+    visualize!(g, p.output, root)
     g |> edge(id, as_id(p.output))
 end
 
-function visualize!(g::Grph, p::ConditionalProvider)
+function visualize!(g::Grph, p::ConditionalProvider, root::Graph)
     id = as_id(p.name)
     g |> node(
         id;
@@ -104,20 +104,20 @@ function visualize!(g::Grph, p::ConditionalProvider)
     )
 
 
-    visualize!(g, p.condition)
+    visualize!(g, p.condition, root)
     g |> edge(as_id(p.condition), id; label = "?")
 
-    visualize!(g, p.if_true)
+    visualize!(g, p.if_true, root)
     g |> edge(as_id(p.if_true), id; label = "true")
 
-    visualize!(g, p.if_false)
+    visualize!(g, p.if_false, root)
     g |> edge(as_id(p.if_false), id; label = "false")
 
-    visualize!(g, p.output)
+    visualize!(g, p.output, root)
     g |> edge(id, as_id(p.output))
 end
 
-function visualize!(g::Grph, p::AlgorithmProvider)
+function visualize!(g::Grph, p::AlgorithmProvider, root::Graph)
     id = as_id(p.call)
 
     sub = g #subgraph(g, "cluster_" * id; label = id)
@@ -126,49 +126,57 @@ function visualize!(g::Grph, p::AlgorithmProvider)
         subgraph(sub, "cluster_" * id * "inputs"; label = "Inputs", style = "dashed")
 
     for inp in p.inputs
-        visualize!(sub_inputs, inp)
+        visualize!(sub_inputs, inp, root)
     end
 
     sub_outputs =
         subgraph(sub, "cluster_$(id)_outputs", label = "Outputs", style = "dashed")
 
-    visualize!(sub_outputs, p.output)
+    visualize!(sub_outputs, p.output, root)
 
     for provider in p.providers
-        visualize!(sub, provider)
+        visualize!(sub, provider, root)
     end
 end
 
-function visualize!(g::Grph, p::ComposedProvider)
+function visualize!(g::Grph, p::ComposedProvider, root::Graph)
     id = as_id(p.call)
 
     sub_id = "cluster_composed_$(id)"
-    sub = subgraph(g, sub_id; label = "$id implementation")
 
-    for inp in p.inputs
-        sub |> node(
-            as_id(inp[1]);
-            shape = "ellipse",
-            label = "$(as_id(inp[1]))\n⇤ $(as_id(inp[2]))\n$(artifact_type(inp[1]))",
-            style = "filled",
-            color = "#5c374c",
-            fillcolor = "#985277",
-        )
-    end
+    nd = findfirst(
+        el -> typeof(el) === GraphvizDotLang.NodeStmt && el.id == sub_id,
+        root.stmt_list,
+    )
+    if nd === nothing
 
-    for inp in p.outputs
-        sub |> node(
-            as_id(inp[2]);
-            shape = "ellipse",
-            label = "$(as_id(inp[2]))\n⇥ $(as_id(inp[1]))\n$(artifact_type(inp[2]))",
-            style = "filled",
-            color = "#5c374c",
-            fillcolor = "#985277",
-        )
-    end
+        sub = subgraph(root, sub_id; label = "$id implementation")
 
-    for provider in p.plan.providers
-        visualize!(sub, provider)
+        for inp in p.inputs
+            sub |> node(
+                as_id(inp[1]);
+                shape = "ellipse",
+                label = "$(as_id(inp[1]))\n⇤ $(as_id(inp[2]))\n$(artifact_type(inp[1]))",
+                style = "filled",
+                color = "#5c374c",
+                fillcolor = "#985277",
+            )
+        end
+
+        for inp in p.outputs
+            sub |> node(
+                as_id(inp[2]);
+                shape = "ellipse",
+                label = "$(as_id(inp[2]))\n⇥ $(as_id(inp[1]))\n$(artifact_type(inp[2]))",
+                style = "filled",
+                color = "#5c374c",
+                fillcolor = "#985277",
+            )
+        end
+
+        for provider in p.plan.providers
+            visualize!(sub, provider, root)
+        end
     end
 
     g |> node(
@@ -190,20 +198,20 @@ function visualize!(g::Grph, p::ComposedProvider)
     )
 
     for inp in inputs(p)
-        visualize!(g, inp)
+        visualize!(g, inp, root)
         g |> edge(as_id(inp), id)
     end
     for out in outputs(p)
-        visualize!(g, out)
+        visualize!(g, out, root)
         g |> edge(id, as_id(out))
     end
 end
 
-function visualize!(g::Grph, p::PromoteProvider)
+function visualize!(g::Grph, p::PromoteProvider, root::Graph)
     id = as_id(p.call)
 
-    visualize!(g, p.input)
-    visualize!(g, p.output)
+    visualize!(g, p.input, root)
+    visualize!(g, p.output, root)
 
     g |> node(
         id;
@@ -217,12 +225,12 @@ function visualize!(g::Grph, p::PromoteProvider)
     g |> edge(id, as_id(p.output))
 end
 
-function visualize!(g::Grph, p::GroupProvider)
+function visualize!(g::Grph, p::GroupProvider, root::Graph)
     id = as_id(p.call)
 
     sub = subgraph(g, "cluster_group_$id#aside"; label = "Group $id")
     for provider in p.plan.providers
-        visualize!(sub, provider)
+        visualize!(sub, provider, root)
     end
 
     # g |> node(id; label = id)
@@ -240,14 +248,14 @@ end
 
 function visualize(p::AbstractProvider)
     g = digraph(compound = "true")
-    visualize!(g, p)
+    visualize!(g, p, g)
     return g
 end
 
 function visualize(lst::Vector)
     providers = collect_providers(lst)
     g = digraph(compound = "true")
-    foreach(p -> visualize!(g, p), providers)
+    foreach(p -> visualize!(g, p, g), providers)
     return g
 end
 

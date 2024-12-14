@@ -1,4 +1,4 @@
-module TestCase0007
+module TestCase0008
 
 using ..Utils
 using FunctionFusion

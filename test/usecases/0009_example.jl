@@ -97,9 +97,32 @@ end
     Time,
 )::FinalDistance
 
-# verifyEquals(generated, expected, 1)
+function expected_in_metric(
+    a_location::Float64,
+    a_speed::Float64,
+    b_location::Float64,
+    b_speed::Float64,
+    time::Float64,
+)::Float64
+    return -(a_location + a_speed * time) + (b_location + b_speed * time)
+end
 
-# verifyVisualization(generated, "0005")
+verifyEquals(compute_in_metric, expected_in_metric, 1.0, 1.0, 5.0, 2.0, 3.0)
+
+
+# @algorithm compute_in_metric[
+#     full_algorithm,
+#     substitute(normalize_speed, normalize_speed_metric),
+#     substitute(normalize_start, normalize_start_metric),
+# ](
+#     TrainALocation,
+#     TrainASpeed,
+#     TrainBLocation,
+#     TrainBSpeed,
+#     Time,
+# )::FinalDistance
+
+verifyVisualization(compute_in_metric, "0009")
 
 
 end

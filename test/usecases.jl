@@ -82,7 +82,8 @@ function verifyVisualization(
         end
 
         expected_str = read(expected_path, String)
-        @test result == expected_str
+        is_same_picture = result == expected_str
+        @test is_same_picture
     end
 end
 
