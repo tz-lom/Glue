@@ -34,7 +34,7 @@ macro context(name, artifacts...)
     field_name(artifact) = QuoteNode(field_name_unquoted(artifact))
 
     fields = map(artifacts) do artifact
-        return :($(field_name_unquoted(artifact))::FunctionFusion.for_context($artifact))
+        return :($(field_name_unquoted(artifact))::$for_context($artifact))
     end
 
 
@@ -52,7 +52,7 @@ macro context(name, artifacts...)
                 if $artifact <: $Artifact
                     function Base.setindex!(
                         c::$name,
-                        v::FunctionFusion.artifact_type($artifact),
+                        v::$artifact_type($artifact),
                         ::Type{$artifact},
                     )
                         if !isnothing(getfield(c, $(field_name(artifact))))

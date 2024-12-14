@@ -112,7 +112,7 @@ function implement_template(plan, name, remaps)
         function $name()
             return $ComposedProvider($name, $plan, $ctx_name, $remaps)
         end
-        $FunctionFusion.describe_provider($name) = $name()
+        $FunctionFusion.describe_provider(::typeof($name)) = $name()
     end
 end
 
