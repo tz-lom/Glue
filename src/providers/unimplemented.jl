@@ -28,7 +28,7 @@ Base.show(io::IO, p::UnimplementedProvider) =
 
 function provide(p::UnimplementedProvider, _, _, _)
     error(
-        "`$(p.call)` is an Unimplemented provider, you have to replace it with some implementation, see `@doc $(@__MODULE__).replace`",
+        "`$(p.call)` is an Unimplemented provider, you have to replace it with some implementation, see `@doc $(@__MODULE__).substitute`",
     )
 end
 

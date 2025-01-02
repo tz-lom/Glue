@@ -1,5 +1,8 @@
 abstract type AbstractContext end
 
+abstract type AbstractMutableContext <: AbstractContext end
+abstract type AbstractImmutableContext <: AbstractContext end
+
 Base.haskey(::AbstractContext, _) = false
 
 for_context(x::Type{<:Artifact}) = Union{Nothing,Some{artifact_type(x)}}
@@ -102,6 +105,8 @@ macro context(name, artifacts...)
         $esc_name
     end
 end
+
+# @macro set_if_missing()
 
 function Base.show(io::IO, type::MIME"text/plain", d::T) where {T<:AbstractContext}
     indent = get(io, :indent, 0)

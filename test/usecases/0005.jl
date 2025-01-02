@@ -3,26 +3,33 @@ module TestCase0005
 using ..Utils
 using FunctionFusion
 
-@artifact A1 = Int
-@artifact A2 = Int
-@artifact A3 = Int
+@artifact A1, A2, A3 = Int
 
-@provider function P1(a::A1)::A2
-    return a + 1
-end
+@provider P1(a::A1)::A2 = a + 1
 
-@provider function P2(a::A2)::A3
-    return a * 10
-end
+@provider P2(a::A2)::A3 = a * 10
 
 @artifact F1_in = Int
 @artifact F1_out = Int
 
-@template C1 P1 P2# where {(F1_in => A1, A3 => F1_out)}
-@implement C1_impl C1 F1_in => A1 A3 => F1_out
+# @template C1 P1 P2
+# @implement C1_impl C1 F1_in => A1 A3 => F1_out
+
+@algorithm N1[P1, P2](A1)::A3
+
+@use I1 = N1{A1 => F1_in,A3 => F1_out}
+# FunctionFusion.@context I1Context F1_out N1ContextOutputs
+# I1 = FunctionFusion.InvokeProvider(
+#     N1,
+#     I1Context,
+#     FunctionFusion.describe_provider(N1),
+#     Dict(F1_in => A1),
+#     Dict(A3 => F1_out),
+# )
 
 
-@algorithm generated[C1_impl](F1_in)::F1_out
+
+@algorithm generated[I1](F1_in)::F1_out
 
 function expected(a::Int)::Int
     return (a + 1) * 10

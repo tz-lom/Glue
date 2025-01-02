@@ -9,29 +9,33 @@ export @artifact,
     @implement,
     @group,
     @unimplemented,
+    @use,
     substitute
 
 import Base
 using Match
 
-include("abstract.jl")
 include("artifact.jl")
-include("provider.jl")
+include("providers/abstract.jl")
+include("providers/callable.jl")
 
 include("execution_plan.jl")
 
 include("context.jl")
-include("conditional.jl")
-include("composed.jl")
-include("promote.jl")
-include("unimplemented.jl")
+include("providers/conditional.jl")
+# include("composed.jl")
+include("providers/promote.jl")
+include("providers/unimplemented.jl")
 
-include("group.jl")
+include("providers/group.jl")
 
-include("algorithm.jl")
+include("providers/algorithm.jl")
+include("providers/invoke.jl")
 
 
 include("substitute.jl")
+
+include("implement.jl")
 
 
 # @todo: extract into submodule

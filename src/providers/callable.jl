@@ -27,15 +27,15 @@ short_description(p::CallableProvider) = extract_short_description(p.doc)
 Base.show(io::IO, p::CallableProvider) =
     print(io, "CallableProvider $(nameof(p.call))$(p.inputs)::$(p.output)")
 
-function provide(p::CallableProvider, result::Type, storage, source)
+function provide(p::CallableProvider, result::Type, context, resolve)
     if (p.output != result)
         error("$p can't provide $result")
     end
     return quote
-        if isnothing($storage[$result])
-            $storage[$result] = $(p.call)($([source(i) for i in p.inputs]...))
+        if isnothing($context[$result])
+            $context[$result] = $(p.call)($([resolve(i) for i in p.inputs]...))
         end
-        something($storage[$result])
+        something($context[$result])
     end
 end
 

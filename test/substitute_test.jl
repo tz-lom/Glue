@@ -21,9 +21,9 @@ end
 
 @unimplemented U2(AA1)::AA2
 
-@template C1 U2
+@algorithm C1[U2](AA1)::AA2 implement = false
 
-@implement C1_impl C1 A1 => AA1 AA2 => A2
+@use C1_impl = C1{A1 => AA1,AA2 => A2}
 
 @group G1 U1
 
@@ -52,17 +52,28 @@ end
 
     @testset "composed is handled correctly" begin
         pp1 = describe_provider(PP1)
-        c1 = describe_provider(C1_impl)
+        c1 = describe_provider(C1)
 
-        new_composed = FunctionFusion.ComposedProvider(
+        new_algorithm = FunctionFusion.AlgorithmProvider(
             c1.call,
+            c1.context,
+            c1.context_outputs,
+            c1.inputs,
+            c1.output,
             FunctionFusion.ExecutionPlan([pp1]),
-            c1.container,
-            c1.remaps,
+        )
+
+        i1 = describe_provider(C1_impl)
+
+        new_invoke = FunctionFusion.InvokeProvider(
+            i1.call,
+            i1.context,
+            new_algorithm,
+            i1.backward_substitutions,
         )
 
         @test collect_providers([C1_impl, substitute(U2, PP1), P2]) ==
-              [new_composed, describe_provider(P2)]
+              [new_invoke, describe_provider(P2)]
     end
 
 

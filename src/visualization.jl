@@ -134,78 +134,82 @@ function visualize!(g::Grph, p::AlgorithmProvider, root::Graph)
 
     visualize!(sub_outputs, p.output, root)
 
-    for provider in p.providers
+    for provider in p.plan.providers
         visualize!(sub, provider, root)
     end
 end
 
-function visualize!(g::Grph, p::ComposedProvider, root::Graph)
-    id = as_id(p.call)
-
-    sub_id = "cluster_composed_$(id)"
-
-    nd = findfirst(
-        el -> typeof(el) === GraphvizDotLang.NodeStmt && el.id == sub_id,
-        root.stmt_list,
-    )
-    if nd === nothing
-
-        sub = subgraph(root, sub_id; label = "$id implementation")
-
-        for inp in p.inputs
-            sub |> node(
-                as_id(inp[1]);
-                shape = "ellipse",
-                label = "$(as_id(inp[1]))\n⇤ $(as_id(inp[2]))\n$(artifact_type(inp[1]))",
-                style = "filled",
-                color = "#5c374c",
-                fillcolor = "#985277",
-            )
-        end
-
-        for inp in p.outputs
-            sub |> node(
-                as_id(inp[2]);
-                shape = "ellipse",
-                label = "$(as_id(inp[2]))\n⇥ $(as_id(inp[1]))\n$(artifact_type(inp[2]))",
-                style = "filled",
-                color = "#5c374c",
-                fillcolor = "#985277",
-            )
-        end
-
-        for provider in p.plan.providers
-            visualize!(sub, provider, root)
-        end
-    end
-
-    g |> node(
-        id;
-        label = id,
-        shape = "component",
-        style = "filled",
-        color = "#5c374c",
-        fillcolor = "#985277",
-    )
-
-    g |> edge(
-        id,
-        as_id(first(p.plan.inputs)),
-        lhead = sub_id,
-        arrowhead = "none",
-        style = "dotted",
-        constraint = "false",
-    )
-
-    for inp in inputs(p)
-        visualize!(g, inp, root)
-        g |> edge(as_id(inp), id)
-    end
-    for out in outputs(p)
-        visualize!(g, out, root)
-        g |> edge(id, as_id(out))
-    end
+function visualize!(g::Grph, p::InvokeProvider, root::Graph)
+    visualize!(g, p.algorithm, root)
 end
+
+# function visualize!(g::Grph, p::ComposedProvider, root::Graph)
+#     id = as_id(p.call)
+
+#     sub_id = "cluster_composed_$(id)"
+
+#     nd = findfirst(
+#         el -> typeof(el) === GraphvizDotLang.NodeStmt && el.id == sub_id,
+#         root.stmt_list,
+#     )
+#     if nd === nothing
+
+#         sub = subgraph(root, sub_id; label = "$id implementation")
+
+#         for inp in p.inputs
+#             sub |> node(
+#                 as_id(inp[1]);
+#                 shape = "ellipse",
+#                 label = "$(as_id(inp[1]))\n⇤ $(as_id(inp[2]))\n$(artifact_type(inp[1]))",
+#                 style = "filled",
+#                 color = "#5c374c",
+#                 fillcolor = "#985277",
+#             )
+#         end
+
+#         for inp in p.outputs
+#             sub |> node(
+#                 as_id(inp[2]);
+#                 shape = "ellipse",
+#                 label = "$(as_id(inp[2]))\n⇥ $(as_id(inp[1]))\n$(artifact_type(inp[2]))",
+#                 style = "filled",
+#                 color = "#5c374c",
+#                 fillcolor = "#985277",
+#             )
+#         end
+
+#         for provider in p.plan.providers
+#             visualize!(sub, provider, root)
+#         end
+#     end
+
+#     g |> node(
+#         id;
+#         label = id,
+#         shape = "component",
+#         style = "filled",
+#         color = "#5c374c",
+#         fillcolor = "#985277",
+#     )
+
+#     g |> edge(
+#         id,
+#         as_id(first(p.plan.inputs)),
+#         lhead = sub_id,
+#         arrowhead = "none",
+#         style = "dotted",
+#         constraint = "false",
+#     )
+
+#     for inp in inputs(p)
+#         visualize!(g, inp, root)
+#         g |> edge(as_id(inp), id)
+#     end
+#     for out in outputs(p)
+#         visualize!(g, out, root)
+#         g |> edge(id, as_id(out))
+#     end
+# end
 
 function visualize!(g::Grph, p::PromoteProvider, root::Graph)
     id = as_id(p.call)

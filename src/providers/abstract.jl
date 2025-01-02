@@ -1,9 +1,42 @@
 using Markdown
 
+"""
+    AbstractProvider
+
+Type common for all providers.
+Shall implement interface with methods
+* `is_provider`
+* `inputs`
+* `outputs`
+* `short_description`
+* `provide`
+"""
 abstract type AbstractProvider end
 
 abstract type ProviderModifier end
 
+
+"""
+    inputs(A::AbstractProvider)
+
+Return all artifacts required by provider `A`
+"""
+function inputs end
+
+
+"""
+    outputs(A::AbstractProvider)
+
+Returns all artifacts provided by provider `A`
+"""
+function outputs end
+
+"""
+    provide(A::AbstractProvider, artifact::AbstractArtifact, context, parent::Union{AbstractProvider, Nothing})
+
+Returns Expr which computes requested `artifact` using values from `context` for source
+"""
+function provide end
 
 """
     describe_provider(x)::AbstractProvider
