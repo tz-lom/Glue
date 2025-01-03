@@ -44,7 +44,7 @@ end
         g1 = describe_provider(G1)
 
         new_group =
-            FunctionFusion.GroupProvider(FunctionFusion.ExecutionPlan([p1]), g1.call)
+            FunctionFusion.GroupProvider(g1.call, g1.context, FunctionFusion.ExecutionPlan([p1]))
 
         @test collect_providers([G1, substitute(U1, P1), P2]) ==
               [new_group, describe_provider(P2)]

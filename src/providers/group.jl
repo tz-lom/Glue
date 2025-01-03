@@ -1,37 +1,31 @@
 struct GroupProvider <: AbstractProvider
     # doc::Markdown.MD
-    plan::ExecutionPlan
     call::Any
+    context::Type{<:AbstractContext}
+    plan::ExecutionPlan
 end
 
 inputs(p::GroupProvider) = p.plan.inputs
 outputs(p::GroupProvider) = p.plan.can_generate
-storage(p::GroupProvider) = p.plan.can_generate
-storage(::GroupProvider, artifact) = artifact
+storage(p::GroupProvider) = p.context
 # short_description(p::GroupProvider) = extract_short_description(p.doc)
 
 function Base.:(==)(left::GroupProvider, right::GroupProvider)
-    return left.plan.providers == right.plan.providers
+    return left.context == right.context && left.plan.providers == right.plan.providers
 end
 
-function provide(p::GroupProvider, result::Type, context, source)
-    function inner_source(artifact)
-        if artifact in p.plan.can_generate
-            provider = p.plan.provider_for_artifact[artifact]
-            provide(provider, artifact, context, inner_source)
-        else
-            source(artifact)
-        end
+function provide(p::GroupProvider, result::Type, context, parent)
+    if result ∉ p.plan.can_generate
+        return parent(result)
+    end
+
+    function self(artifact)
+        return provide(p, artifact, context, parent)
     end
 
     provider = p.plan.provider_for_artifact[result]
-    if result in p.plan.can_generate
-        return quote
-            $(inner_source(result))
-        end
-    else
-        error("Can't provide $result")
-    end
+    nested_context = :($context[$(storage(p))])
+    return provide(provider, result , nested_context, self)
 end
 
 function apply_modification_iteratively(mod::ProviderModifier, group::GroupProvider)
@@ -40,7 +34,7 @@ function apply_modification_iteratively(mod::ProviderModifier, group::GroupProvi
         new_providers =
             replace(p -> apply_modification_iteratively(mod, p), group.plan.providers)
         if new_providers != group.plan.providers
-            return GroupProvider(ExecutionPlan(new_providers), group.call)
+            return GroupProvider(group.call, group.context, ExecutionPlan(new_providers))
         else
             return group
         end
@@ -60,7 +54,7 @@ function define_group(name, providers)
         $FunctionFusion.@context($ctx_name, $(plan.can_generate...))
 
         function $name() end
-        const $group = $GroupProvider($plan, $name)
+        const $group = $GroupProvider($name, $ctx_name, $plan)
 
         $FunctionFusion.describe_provider(::typeof($name)) = $group
     end
