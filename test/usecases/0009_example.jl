@@ -151,8 +151,7 @@ function expected_in_cgs(
     b_speed::Float64,
     time::Float64,
 )::Float64
-    return (b_location * 0.01 + b_speed * 0.01 * time) -
-           (a_location * 0.01 + a_speed * 0.01 * time)
+    return - (a_location * 0.01 + a_speed * 0.01 * time) +  (b_location * 0.01 + b_speed * 0.01 * time)
 end
 
 verifyEquals(compute_in_cgs, expected_in_cgs, 1.0, 1.0, 5.0, 2.0, 3.0)

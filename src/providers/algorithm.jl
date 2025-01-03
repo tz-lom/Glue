@@ -207,7 +207,7 @@ macro algorithm(params...)
     return quote
         Base.eval(
             $__module__,
-            define_algorithm(
+            $define_algorithm(
                 $(QuoteNode(name)),
                 ($(map(esc, providers)...),),
                 ($(map(esc, args)...),),

@@ -8,9 +8,9 @@ using Test, FunctionFusion
 
     FunctionFusion.@context Ctx A B C
     ctx = Ctx()
-    @test all(values(ctx)) do (_, x)
-        isnothing(x)
-    end == true
+    @test isnothing(ctx[A])
+    @test isnothing(ctx[B])
+    @test isnothing(ctx[C])
 
     ctx[A] = 4
     ctx[B] = "foo"

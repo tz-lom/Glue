@@ -1,16 +1,119 @@
 abstract type AbstractContext end
 
-abstract type AbstractMutableContext <: AbstractContext end
-abstract type AbstractImmutableContext <: AbstractContext end
+abstract type ContextStack{Prev, Curr} end
+
+struct ContextPtr{Root, Stack}
+    root::Root
+end
+
+Base.show(io::IO,::MIME"text/plain", ::Type{ContextStack{Root}}) where {Root} = print(io, "[$Root]")
+function Base.show(io::IO, type::MIME"text/plain", ::Type{ContextStack{Prev, Curr}}) where{Prev, Curr} 
+    show(io, type, Prev)
+    print(io, "[$Curr]")
+end
+
+
+function key end
+
+# Redirect to the type based keys method
+Base.keys(::T) where {T<:AbstractContext} = Base.keys(T)
+
+Base.keys(::ContextPtr{Root, ContextStack{Parent, Child}}) where {Root, Parent, Child} = Base.keys(Child)
+Base.keys(::ContextPtr{Root, ContextStack{Child}}) where {Root, Child} = Base.keys(Child)
+
+function Base.getindex(c::C, ::Type{T}) where {C<:AbstractContext,T<:Artifact}
+    return getfield(c, key(c, T))
+end
+
+function Base.getindex(c::C, ::Type{T}) where {C<:AbstractContext, T<:AbstractContext}
+    return ContextPtr{C, ContextStack{T}}(c)
+end
+
+function Base.getindex(c::ContextPtr{Root, Prev}, ::Type{T}) where{Root, Prev, T<:Artifact}
+    return getfield(c.root, key(c.root, ContextStack{Prev, T}))
+end
+
+function Base.getindex(c::ContextPtr{Root, Prev}, ::Type{T}) where{Root, Prev, T<:AbstractContext}
+    return ContextPtr{Root, ContextStack{Prev, T}}(c.root)
+end
+
+function Base.getindex(c::ContextPtr{Root, Stack}) where{Root, Parent, Child, Stack<:ContextStack{Parent, Child}}
+    return getfield(c.root, key(c.root, Stack))
+end
+
+function Base.getindex(c::ContextPtr{Root, Stack}) where{Root, Child, Stack<:ContextStack{ Child}}
+    return getfield(c.root, key(c.root, Child))
+end
+
+
+function Base.setindex!(c::C, v, ::Type{T}) where {C<:AbstractContext, T<:Artifact}
+    if !isnothing(getfield(c, key(c, T)))
+        error("Artifact [$T] is already set")
+    end
+    return setfield!(c, key(c, T), Some(v))
+end
+
+function Base.setindex!(c::ContextPtr{Root, Prev}, v, ::Type{T}) where{Root, Prev, T<:Artifact}
+    if !isnothing(getfield(c.root, key(c.root, ContextStack{Prev, T})))
+        error("Artifact $Prev[$T] is already set")
+    end
+    return setfield!(c.root, key(c.root, ContextStack{Prev, T}), Some(v))
+end
+
 
 Base.haskey(::AbstractContext, _) = false
 
-for_context(x::Type{<:Artifact}) = Union{Nothing,Some{artifact_type(x)}}
-for_context(x::Type{<:AbstractContext}) = x
+function define_context(context_name, artifacts...)
+    # Each context shall define:
+    # struct with fields
+    # method `keys`
+    # method `key`
+    # method `show` for "text/plain"
 
-default_constructed(::Type{<:Artifact}) = nothing
-default_constructed(x::Type{<:AbstractContext}) = x()
+    function enum_fields(x::Type{T}) where {T<:Artifact}
+        return [T => Union{Nothing,Some{artifact_type(x)}}]
+    end
 
+    function enum_fields(x::Type{T}, ::Type{Parent}) where {T<:Artifact, Parent}
+        return [ContextStack{Parent,T} => Union{Nothing,Some{artifact_type(x)}}]
+    end
+
+    function enum_fields(context::Type{C}) where {C <: AbstractContext}
+        return mapreduce((x) -> enum_fields(x, ContextStack{C}), append!, keys(context), init=[])
+    end
+
+    function enum_fields(context::Type{C}, ::Type{Parent}) where {C<:AbstractContext, Parent}
+        return mapreduce((x)->enum_fields(x, ContextStack{Parent,C}), append!, keys(context), init=[])
+    end
+
+    fields = mapreduce(enum_fields, append!, artifacts, init=[])
+
+
+    fields_expr = map(enumerate(fields)) do (i,(_,type))
+        local name = Symbol(:f,i)
+        :($name::$type)
+    end
+
+    key_expr = map(enumerate(fields)) do (i, (name, _))
+        local sym_name = Symbol(:f,i)
+        :($FunctionFusion.key(::$context_name, ::Type{$name})=$(QuoteNode(sym_name)))
+    end
+
+    return quote
+        mutable struct $context_name <: $AbstractContext
+            $(fields_expr...)
+
+            $context_name() = new($([nothing for _ in fields]...))
+        end
+
+        function Base.keys(::Type{$context_name})
+            return $(Tuple([name for name in artifacts]))
+        end
+
+        $(key_expr...)
+        
+    end
+end
 
 """
     @context(name, artifacts_or_contexts...)
@@ -33,99 +136,57 @@ isnothing(ctx[A]) == false
 
 """
 macro context(name, artifacts...)
-    field_name_unquoted(artifact) = Symbol("salt_", artifact)
-    field_name(artifact) = QuoteNode(field_name_unquoted(artifact))
+    return quote 
+        Base.eval($__module__, $define_context($(QuoteNode(name)), $([esc(a) for a in artifacts]...)))
+    end    
+end
 
-    fields = map(artifacts) do artifact
-        return :($(field_name_unquoted(artifact))::$for_context($artifact))
-    end
-
-
-    getindex = map(artifacts) do artifact
-        err = "Artifact $artifact is not set"
-        return esc(:(function Base.getindex(c::$name, ::Type{$artifact})
-            x = getfield(c, $(field_name(artifact)))
-            return x
-        end))
-    end
-
-    setindex = map(artifacts) do artifact
-        return esc(
-            :(
-                if $artifact <: $Artifact
-                    function Base.setindex!(
-                        c::$name,
-                        v::$artifact_type($artifact),
-                        ::Type{$artifact},
-                    )
-                        if !isnothing(getfield(c, $(field_name(artifact))))
-                            error($("Artifact $artifact is already set"))
-                        end
-                        setfield!(c, $(field_name(artifact)), Some(v))
-                    end
-                end
-            ),
-        )
-    end
-
-    iterate_body = foldr(enumerate(artifacts), init = :(nothing)) do (i, name), other
-        :(
-            if iter == $i
-                ($(esc(name)) => getfield(ctx, $(field_name(name))), $(i + 1))
-            else
-                $other
-            end
-        )
-    end
-
-    esc_name = esc(name)
-
-
-    return quote
-        mutable struct $name <: AbstractContext
-            $((esc(field) for field in fields)...)
-
-            $name() = new(
-                $((:(default_constructed($(esc(artifact)))) for artifact in artifacts)...),
-            )
-        end
-
-        $(getindex...)
-
-        $(setindex...)
-
-        function Base.iterate(ctx::$esc_name, iter::Int)
-            $iterate_body
-        end
-
-        function Base.iterate(ctx::$esc_name)
-            return Base.iterate(ctx, 1)
-        end
-
-        $esc_name
+function show_artifact(io, ptr, name, spaces)
+    value = ptr[]
+    if isnothing(value)
+        println(io, "$spaces[ ] $name")
+    else
+        println(io, "$spaces[✔] $name => $(something(value))")
     end
 end
 
-# @macro set_if_missing()
+stack_pop(::Type{ContextStack{Last}}) where {Last} = Last
+stack_pop(::Type{ContextStack{Prev, Last}}) where {Prev, Last} = Last
 
-function Base.show(io::IO, type::MIME"text/plain", d::T) where {T<:AbstractContext}
-    indent = get(io, :indent, 0)
-    if indent == 0
-        println(io, "Context $(typeof(d))")
-        indent = 2
-    end
-    spaces = repeat(' ', indent)
+function Base.show(io::IO, type::MIME"text/plain", ptr::ContextPtr{Root, ContextStack{Parent, A}}) where {Root<:AbstractContext, Parent, A <:Artifact }
+    spaces = get(io, :spaces, "")
+    show_artifact(io, ptr, A, spaces)
+end
 
-    for i in d
-        if isnothing(i.second)
-            println(io, "$spaces[ ] $(i.first)")
-        elseif typeof(i.second) <: AbstractContext
-            println(io, "$spaces[+] $(i.first)")
-            nio = IOContext(io, :indent => indent + 4)
-            show(nio, type, i.second)
-        else
-            println(io, "$spaces[✔] $(i.first) => $(something(i.second))")
+function Base.show(io::IO, type::MIME"text/plain", ptr::ContextPtr{Root, ContextStack{A}}) where {Root<:AbstractContext, A <:Artifact }
+    spaces = get(io, :spaces, "")
+    show_artifact(io, ptr, A, spaces)
+end
+
+function Base.show(io::IO, type::MIME"text/plain", ptr::ContextPtr{Root, Stack}) where {Root, Stack<:ContextStack}
+    spaces = get(io, :spaces, "")
+    if spaces==""
+        print(io, "In context $Root")
+        show(io, type, Stack)
+        println(io)
+        nio = IOContext(io, :spaces=>"  ")
+        for name in keys(ptr)
+            show(nio, type, ContextPtr{Root,ContextStack{Stack,name}}(ptr.root))
         end
+    else
+        println(io, "$spaces[+] $(stack_pop(Stack))")
+        nio = IOContext(io, :spaces=>"$spaces    ")
+        for name in keys(ptr)
+            show(nio, type, ContextPtr{Root,ContextStack{Stack,name}}(ptr.root))
+        end
+    end
+end
+
+function Base.show(io::IO, type::MIME"text/plain", ctx::T) where {T<:AbstractContext}
+    println(io, "Context $T")
+    nio = IOContext(io, :spaces => "  ")
+    for name in keys(ctx)
+        show(nio, type, ContextPtr{T,ContextStack{name}}(ctx))
     end
 end
 
