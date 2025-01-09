@@ -90,9 +90,9 @@ function define_invoke(name, algorithm, algorithm_name, substitutions)
 end
 
 """
-    @invoke InvokeName = AlgorithmName{Substitutions}
+    @invoke_with Name = AlgorithmName{Substitutions}
 """
-macro use(expr::Expr)
+macro invoke_with(expr::Expr)
     return @match expr begin
         Expr(:(=), [name, Expr(:curly, [algorithm, substitutions...])]) => begin
 

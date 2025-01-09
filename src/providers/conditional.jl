@@ -1,11 +1,11 @@
 struct ConditionalProvider <: AbstractProvider
-    name::Symbol
+    call::Function
     condition::Type{<:Artifact}
     if_true::Type{<:Artifact}
     if_false::Type{<:Artifact}
     output::Type{<:Artifact}
 
-    function ConditionalProvider(name, condition, if_true, if_false, output)
+    function ConditionalProvider(call, condition, if_true, if_false, output)
         if artifact_type(condition) != Bool
             error("Conditional provider requires `condition` artifact of type Bool")
         end
@@ -20,7 +20,7 @@ struct ConditionalProvider <: AbstractProvider
             )
         end
 
-        return new(name, condition, if_true, if_false, output)
+        return new(call, condition, if_true, if_false, output)
     end
 end
 
@@ -74,8 +74,10 @@ macro conditional(e::Expr)
             if_false = esc(if_false)
             output = esc(output)
             return quote
-                $name = FunctionFusion.ConditionalProvider(
-                    $sname,
+                function $name() end #@todo: implement conditional here
+
+                local definition = FunctionFusion.ConditionalProvider(
+                    $name,
                     $condition,
                     $if_true,
                     $if_false,
@@ -83,7 +85,7 @@ macro conditional(e::Expr)
                 )
 
                 function FunctionFusion.describe_provider(::typeof($name))
-                    return $name
+                    return definition
                 end
 
                 FunctionFusion.is_provider(::typeof($name)) = true

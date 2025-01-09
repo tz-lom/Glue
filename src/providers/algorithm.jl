@@ -9,7 +9,7 @@ struct AlgorithmProvider <: AbstractProvider
 end
 
 function Base.:(==)(left::AlgorithmProvider, right::AlgorithmProvider)
-    return left.plan.providers == right.plan.providers &&
+    return left.plan == right.plan &&
            left.inputs == right.inputs &&
            left.output == right.output
 end

@@ -1,18 +1,18 @@
 
 struct ExecutionPlan
-    providers::Set{AbstractProvider}
+    providers::OrderedSet{AbstractProvider}
     provider_for_artifact::Dict{Type{<:Artifact},AbstractProvider}
-    artifacts::Set{Type{<:Artifact}}
-    inputs::Set{Type{<:Artifact}}
-    outputs::Set{Type{<:Artifact}}
-    can_generate::Set{Type{<:Artifact}}
+    artifacts::OrderedSet{Type{<:Artifact}}
+    inputs::OrderedSet{Type{<:Artifact}}
+    outputs::OrderedSet{Type{<:Artifact}}
+    can_generate::OrderedSet{Type{<:Artifact}}
 
     function ExecutionPlan(providers)
         provider_for_artifact = Dict{Type{<:Artifact},AbstractProvider}()
 
 
-        input_set = Set{Type{<:Artifact}}()
-        output_set = Set{Type{<:Artifact}}()
+        input_set = OrderedSet{Type{<:Artifact}}()
+        output_set = OrderedSet{Type{<:Artifact}}()
 
         for provider in providers
             for input in FunctionFusion.inputs(provider)
@@ -31,7 +31,7 @@ struct ExecutionPlan
 
 
         return new(
-            Set(providers),
+            OrderedSet(providers),
             provider_for_artifact,
             artifacts,
             inputs,
@@ -39,6 +39,10 @@ struct ExecutionPlan
             output_set,
         )
     end
+end
+
+function Base.(==)(left::ExecutionPlan, right::ExecutionPlan)
+    return left.providers == right.providers
 end
 
 Base.show(io::IO, p::ExecutionPlan) = print(

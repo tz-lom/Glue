@@ -9,11 +9,12 @@ export @artifact,
     @implement,
     @group,
     @unimplemented,
-    @use,
+    @invoke_with,
     substitute
 
 import Base
 using Match
+using OrderedCollections
 
 include("artifact.jl")
 include("providers/abstract.jl")
@@ -30,7 +31,7 @@ include("providers/unimplemented.jl")
 include("providers/group.jl")
 
 include("providers/algorithm.jl")
-include("providers/invoke.jl")
+include("providers/invoke_with.jl")
 
 
 include("substitute.jl")

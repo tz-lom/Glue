@@ -98,7 +98,7 @@ end
 
 function extract_short_description(doc::Markdown.MD)
     descr = string(Markdown.MD(doc.content[1]))
-    if descr == "No documentation found.\n"
+    if startswith(descr, "No documentation found")
         return nothing
     else
         return descr
