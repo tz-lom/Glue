@@ -2,11 +2,10 @@
 
 struct CallableProvider <: AbstractProvider
     call::Function
-    doc::Markdown.MD
     inputs::Tuple{Vararg{DataType}}
     output::Type{<:Artifact}
 
-    function CallableProvider(call, doc::Markdown.MD, inputs, output)
+    function CallableProvider(call, inputs, output)
         name = Symbol(call)
         unique_inputs = Set(inputs)
         if length(unique_inputs) != length(inputs)
@@ -15,14 +14,14 @@ struct CallableProvider <: AbstractProvider
         if output in unique_inputs
             error("Output type $output should not be an input for provider $name")
         end
-        new(call, doc, inputs, output)
+        new(call, inputs, output)
     end
 end
 
 inputs(p::CallableProvider) = p.inputs
 outputs(p::CallableProvider) = (p.output,)
 storage(p::CallableProvider) = p.output
-short_description(p::CallableProvider) = extract_short_description(p.doc)
+# short_description(p::CallableProvider) = extract_short_description(p.doc)
 
 Base.show(io::IO, p::CallableProvider) =
     print(io, "CallableProvider $(nameof(p.call))$(p.inputs)::$(p.output)")
@@ -137,12 +136,8 @@ macro provider(func::Expr)
             return quote
                 Core.@__doc__ $(esc(new_function))
 
-                local definition = $FunctionFusion.CallableProvider(
-                    $name,
-                    Base.Docs.doc(Base.Docs.Binding($__module__, $(QuoteNode(sig.name)))),
-                    ($(inputs...),),
-                    $output,
-                )
+                local definition =
+                    $FunctionFusion.CallableProvider($name, ($(inputs...),), $output)
 
                 function $FunctionFusion.describe_provider(::typeof($name))
                     return definition
@@ -168,7 +163,6 @@ macro provider(func::Expr)
 
                 local definition = $FunctionFusion.CallableProvider(
                     $esc_name,
-                    Base.Docs.doc(Base.Docs.Binding($__module__, $(QuoteNode(name)))),
                     ($(inputs...),),
                     $(esc(result)),
                 )
@@ -189,12 +183,8 @@ macro provider(func::Expr)
             docname = gensym(:doc)
             return quote
                 Core.@__doc__ $(esc(docname))() = nothing
-                local definition = $FunctionFusion.CallableProvider(
-                    $name,
-                    Base.Docs.doc(Base.Docs.Binding($__module__, $(QuoteNode(docname)))),
-                    ($(inputs...),),
-                    $output,
-                )
+                local definition =
+                    $FunctionFusion.CallableProvider($name, ($(inputs...),), $output)
                 Base.delete_method(Base.which($(esc(docname)), ()))
 
                 function $FunctionFusion.describe_provider(::typeof($name))
@@ -216,12 +206,8 @@ macro provider(func::Expr)
 
                 Core.@__doc__ $name(args...) = $alias(args...)
 
-                local definition = $FunctionFusion.CallableProvider(
-                    $name,
-                    Base.Docs.doc(Base.Docs.Binding($__module__, $qname)),
-                    ($(inputs...),),
-                    $output,
-                )
+                local definition =
+                    $FunctionFusion.CallableProvider($name, ($(inputs...),), $output)
 
                 function $FunctionFusion.describe_provider(::typeof($name))
                     return definition

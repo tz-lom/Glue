@@ -39,7 +39,7 @@ end
 verifyEquals(generated, expected, 1, false)
 verifyEquals(generated, expected, 1, true)
 
-verifyVisualization(generated, "0002")
+@verifyVisualization(generated, "0002")
 
 
 end

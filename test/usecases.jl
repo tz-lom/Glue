@@ -4,7 +4,7 @@ using Test
 
 module Utils
 
-export verifyEquals, verifyVisualization
+export verifyEquals, @verifyVisualization
 
 using InteractiveUtils: code_native
 using Test
@@ -63,28 +63,31 @@ function verifyEquals(generated, expected, arguments...)
 end
 
 
-function verifyVisualization(
-    to_visualize,
-    expected,
-    update = haskey(ENV, "UPDATE_VISUAL_TESTS"),
-)
-    g = FunctionFusion.visualize(to_visualize)
+function verifyVisualization(mod, to_visualize, expected)
+    update = haskey(ENV, "UPDATE_VISUAL_TESTS")
+    dot = FunctionFusion.as_dot(to_visualize; mod)
 
-    mktemp() do fname, _
-        save(g, fname, format = "png")
+    expected_dot = joinpath(@__DIR__, "visualized", expected * ".dot")
 
-        result = read(fname, String)
+    if update
+        write(expected_dot, dot)
 
-        expected_path = joinpath(@__DIR__, "visualized", expected * ".png")
-
-        if update
-            cp(fname, expected_path; force = true)
-        end
-
-        expected_str = read(expected_path, String)
-        is_same_picture = result == expected_str
-        @test is_same_picture
+        expected_png = joinpath(@__DIR__, "visualized", expected * ".png")
+        # png_io = IOBuffer()
+        # run(pipeline(`dot -Tpng`; stdin = IOBuffer(dot), stdout = png_io))
+        # png = String(take!(png_io))
+        # write(expected_png, png)
+        run(`dot -Tpng $expected_dot -o$expected_png`)
     end
+
+    expected_str = read(expected_dot, String)
+    # is_same_dot = result == expected_str
+    @test dot == expected_str
+
+end
+
+macro verifyVisualization(to_visualize, expected)
+    return esc(:($verifyVisualization($__module__, $to_visualize, $expected)))
 end
 
 end
@@ -97,6 +100,7 @@ function test()
         include(joinpath(@__DIR__, "usecases", file))
     end
 
+    # include(joinpath(@__DIR__, "usecases", "0003.jl"))
 end
 
 end

@@ -41,9 +41,11 @@ struct ExecutionPlan
     end
 end
 
-function Base.(==)(left::ExecutionPlan, right::ExecutionPlan)
+function Base.:(==)(left::ExecutionPlan, right::ExecutionPlan)
     return left.providers == right.providers
 end
+
+Base.hash(x::ExecutionPlan, h::UInt = UInt(0)) = hash(x.providers, h)
 
 Base.show(io::IO, p::ExecutionPlan) = print(
     io,

@@ -17,7 +17,7 @@ using FunctionFusion
 
 @algorithm N1[P1, P2](A1)::A3
 
-@use I1 = N1{A1 => F1_in,A3 => F1_out}
+@invoke_with I1 = N1{A1 => F1_in,A3 => F1_out}
 # FunctionFusion.@context I1Context F1_out N1ContextOutputs
 # I1 = FunctionFusion.InvokeProvider(
 #     N1,
@@ -37,7 +37,7 @@ end
 
 verifyEquals(generated, expected, 1)
 
-verifyVisualization(generated, "0005")
+@verifyVisualization(generated, "0005")
 
 
 end

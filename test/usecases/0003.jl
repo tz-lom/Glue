@@ -19,7 +19,7 @@ end
 @artifact F1_out = Int
 
 @algorithm N1[P1, P2](A1)::A3
-@use I1 = N1{A1 => F1_in,A3 => F1_out}
+@invoke_with I1 = N1{A1 => F1_in,A3 => F1_out}
 
 
 @algorithm generated[I1](F1_in)::F1_out
@@ -30,7 +30,7 @@ end
 
 verifyEquals(generated, expected, 1)
 
-verifyVisualization(generated, "0003")
+@verifyVisualization(generated, "0003")
 
 
 end

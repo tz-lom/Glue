@@ -58,14 +58,14 @@ end
 # @implement new_location_A new_location TrainALocation => C_Start TrainASpeed => C_Speed Time =>
 # C_Time C_End => TrainANewLocation
 
-@use new_location_A = new_location{
+@invoke_with new_location_A = new_location{
     C_Start => TrainALocation,
     C_Speed => TrainASpeed,
     C_Time => Time,
     C_End => TrainANewLocation,
 }
 
-@use new_location_B = new_location{
+@invoke_with new_location_B = new_location{
     C_Start => TrainBLocation,
     C_Speed => TrainBSpeed,
     C_Time => Time,
@@ -121,7 +121,7 @@ function expected_in_metric(
 end
 
 verifyEquals(compute_in_metric, expected_in_metric, 1.0, 1.0, 5.0, 2.0, 3.0)
-verifyVisualization(compute_in_metric, "0009_metric")
+@verifyVisualization(compute_in_metric, "0009_metric")
 
 # cgs platform
 
@@ -151,11 +151,12 @@ function expected_in_cgs(
     b_speed::Float64,
     time::Float64,
 )::Float64
-    return - (a_location * 0.01 + a_speed * 0.01 * time) +  (b_location * 0.01 + b_speed * 0.01 * time)
+    return -(a_location * 0.01 + a_speed * 0.01 * time) +
+           (b_location * 0.01 + b_speed * 0.01 * time)
 end
 
 verifyEquals(compute_in_cgs, expected_in_cgs, 1.0, 1.0, 5.0, 2.0, 3.0)
-verifyVisualization(compute_in_cgs, "0009_cgs")
+@verifyVisualization(compute_in_cgs, "0009_cgs")
 
 
 

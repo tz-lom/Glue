@@ -30,6 +30,15 @@ end
 
 @invoke_with I1 = Gen1{A2 => A4}
 
+@invoke_with I2 = Gen1{A2 => A5,A3 => A6}
+@artifact A7 = Int
+@provider P5(x::A3, y::A6)::A7 = x + y
+
+@algorithm Gen4[I1, I2, P2, P5, Gen3](A1, A2, A4)::A7
+
+@algorithm N1[P2](A3)::A4
+@algorithm N2[N1](A3)::A4
+
 @testset "Provider" begin
 
     @test to_dot(P1) == raw"""
@@ -199,6 +208,11 @@ end
     invoke_1:invoke_1_input_3 -> artifact_7
     artifact_10 -> invoke_1:invoke_1_input_3
     }
+    """
+end
+
+@testset "Multiple invoke" begin
+    @test to_dot(Gen4) = raw"""
     """
 end
 

@@ -1,0 +1,34 @@
+digraph { layout=dot; compound=true;
+subgraph cluster_provider_1 {
+label="Algorithm generated"
+subgraph cluster_provider_1_inputs {
+label="Inputs"
+provider_1__artifact_2 [label="A1\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+provider_1__artifact_3 [label="B1\nBool",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+} // cluster_provider_1_inputs
+subgraph cluster_provider_1_outputs {
+label="Outputs"
+provider_1outputs__artifact_4 [label="A4\nInt64",shape="ellipse",style="",color="#4a7c59",fillcolor="#8fc0a9"]
+} // cluster_provider_1_outputs
+ // before providers
+subgraph cluster_provider_1__group_5 {
+label="Group G1"
+provider_1__artifact_6 [label="A2\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+provider_1__artifact_7 [label="A3\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+provider_1__artifact_8 [label="A4\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+provider_1__provider_9 [shape="rectangle",label="P1",style="filled",color="#ff8c61",fillcolor="#faa275"]
+provider_1__provider_10 [shape="rectangle",label="P2",style="filled",color="#ff8c61",fillcolor="#faa275"]
+provider_1__conditional_11 [shape="diamond",label="C1",style="filled",color="#b23a48",fillcolor="#fcb902"]
+} // cluster_provider_1__group_5
+} // cluster_provider_1
+
+provider_1__provider_9 -> provider_1__artifact_6
+provider_1__artifact_2 -> provider_1__provider_9
+provider_1__provider_10 -> provider_1__artifact_7
+provider_1__artifact_2 -> provider_1__provider_10
+provider_1__artifact_3 -> provider_1__conditional_11 [label="?"]
+provider_1__artifact_6 -> provider_1__conditional_11 [label="true"]
+provider_1__artifact_7 -> provider_1__conditional_11 [label="false"]
+provider_1__conditional_11 -> provider_1__artifact_8
+provider_1__artifact_8 -> provider_1outputs__artifact_4 [arrowhead="none",color="#4a7c59"]
+}

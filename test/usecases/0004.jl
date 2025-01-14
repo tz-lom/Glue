@@ -20,7 +20,7 @@ end
 
 verifyEquals(generated, expected, 42)
 
-verifyVisualization(generated, "0004")
+@verifyVisualization(generated, "0004")
 
 end
 

@@ -19,7 +19,7 @@ using FunctionFusion
 
 @algorithm Alg3[Alg2, P4](A1)::A5
 
-verifyVisualization(Alg3, "0010")
+@verifyVisualization(Alg3, "0010")
 
 
 end

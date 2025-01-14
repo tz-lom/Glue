@@ -1,0 +1,29 @@
+digraph { layout=dot; compound=true;
+subgraph cluster_provider_1 {
+label="Algorithm generated"
+subgraph cluster_provider_1_inputs {
+label="Inputs"
+provider_1__artifact_2 [label="A1\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+provider_1__artifact_3 [label="B1\nBool",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+} // cluster_provider_1_inputs
+provider_1__artifact_4 [label="A3\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+provider_1__artifact_5 [label="A2\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+subgraph cluster_provider_1_outputs {
+label="Outputs"
+provider_1__artifact_6 [label="A4\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+} // cluster_provider_1_outputs
+ // before providers
+provider_1__provider_7 [shape="rectangle",label="P1",style="filled",color="#ff8c61",fillcolor="#faa275"]
+provider_1__provider_8 [shape="rectangle",label="P2",style="filled",color="#ff8c61",fillcolor="#faa275"]
+provider_1__conditional_9 [shape="diamond",label="C1",style="filled",color="#b23a48",fillcolor="#fcb902"]
+} // cluster_provider_1
+
+provider_1__provider_7 -> provider_1__artifact_5
+provider_1__artifact_2 -> provider_1__provider_7
+provider_1__provider_8 -> provider_1__artifact_4
+provider_1__artifact_2 -> provider_1__provider_8
+provider_1__artifact_3 -> provider_1__conditional_9 [label="?"]
+provider_1__artifact_5 -> provider_1__conditional_9 [label="true"]
+provider_1__artifact_4 -> provider_1__conditional_9 [label="false"]
+provider_1__conditional_9 -> provider_1__artifact_6
+}

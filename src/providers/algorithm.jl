@@ -14,6 +14,8 @@ function Base.:(==)(left::AlgorithmProvider, right::AlgorithmProvider)
            left.output == right.output
 end
 
+Base.hash(x::AlgorithmProvider, h::UInt = UInt(0)) =
+    hash(x.plan, hash(x.inputs, hash(x.output, h)))
 
 inputs(p::AlgorithmProvider) = p.inputs
 outputs(p::AlgorithmProvider) = (p.output,)

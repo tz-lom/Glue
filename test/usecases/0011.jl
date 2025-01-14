@@ -21,7 +21,7 @@ using FunctionFusion
 
 @test Alg("A1") == "P4(P2(P1(A1)))"
 
-verifyVisualization(Alg, "0011")
+@verifyVisualization(Alg, "0011")
 
 
 end

@@ -1,0 +1,22 @@
+digraph { layout=dot; compound=true;
+subgraph cluster_provider_1 {
+label="Algorithm generated"
+subgraph cluster_provider_1_inputs {
+label="Inputs"
+provider_1__artifact_2 [label="A1\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+} // cluster_provider_1_inputs
+provider_1__artifact_3 [label="A2\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+subgraph cluster_provider_1_outputs {
+label="Outputs"
+provider_1__artifact_4 [label="A3\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+} // cluster_provider_1_outputs
+ // before providers
+provider_1__provider_5 [shape="rectangle",label="P1",style="filled",color="#ff8c61",fillcolor="#faa275"]
+provider_1__provider_6 [shape="rectangle",label="P2",style="filled",color="#ff8c61",fillcolor="#faa275"]
+} // cluster_provider_1
+
+provider_1__provider_5 -> provider_1__artifact_3
+provider_1__artifact_2 -> provider_1__provider_5
+provider_1__provider_6 -> provider_1__artifact_4
+provider_1__artifact_3 -> provider_1__provider_6
+}

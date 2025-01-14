@@ -1,10 +1,8 @@
-# using GraphvizDotLang: GraphvizDotLang, Graph, digraph, edge, attr, subgraph
-
 import GraphViz
 
-#@todo: add module inside and setup pretty printing
 struct NameShortener
     values::IdDict
+    mod::Module
     function NameShortener(mod::Module = Main)
         if VERSION >= v"1.12"
             all_names = names(mod, all = true, imported = true, usings = true)
@@ -12,8 +10,12 @@ struct NameShortener
             all_names = names(mod, all = true, imported = true)
         end
 
-        return new(IdDict(getproperty(mod, name) => name for name in all_names))
+        return new(IdDict(getproperty(mod, name) => name for name in all_names), mod)
     end
+end
+
+function Base.show(io::IO, x::NameShortener)
+    print(io, "NameShortener($(x.mod))")
 end
 
 function short_name(ctx::NameShortener, @nospecialize(x))
@@ -28,23 +30,27 @@ function short_name(ctx::NameShortener, @nospecialize(x))
         if y === x
             error("Unreachable symbol $x")
         end
+        x = y
     end
 end
 
 mutable struct GraphBuilder
     connections::Vector{String}
-    added_entities::IdDict{Any,Symbol}
+    added_entities::Dict{Any,Symbol}
     shortener::NameShortener
     clusters::Vector{String}
     current_place::Int
     id_incr::Int
+    primary::Union{Nothing,Missing,Any}
+    context::String
 
-    GraphBuilder(; mod = Main) = new([], IdDict(), NameShortener(mod), [], 1, 0)
+    GraphBuilder(; mod = Main) =
+        new([], IdDict(), NameShortener(mod), [], 1, 0, missing, "")
 end
 
 function as_dot(ctx::GraphBuilder)
     return """
-    digraph { compound=true;
+    digraph { layout=dot; compound=true;
     $(join(ctx.clusters, '\n'))
 
     $(join(ctx.connections, '\n'))
@@ -58,12 +64,33 @@ function add_to_cluster!(ctx::GraphBuilder, s::String)
     return ctx.current_place
 end
 
-function create_cluster!(f, ctx::GraphBuilder, name; props...)
+function create_subcluster!(f, ctx::GraphBuilder, name; props...)
     str_props = ["$name=\"$(escape_string(value))\"" for (name, value) in props]
     add_to_cluster!(ctx, "subgraph cluster_$name {")
     add_to_cluster!(ctx, join(str_props, ";"))
-    f()
+    result = f()
     add_to_cluster!(ctx, "} // cluster_$name")
+    return result
+end
+
+function create_cluster!(f, ctx::GraphBuilder, name; props...)
+    str_props = ["$name=\"$(escape_string(value))\"" for (name, value) in props]
+    old_place = ctx.current_place
+    ctx.current_place = length(ctx.clusters) + 1
+    add_to_cluster!(ctx, "subgraph cluster_$name {")
+    add_to_cluster!(ctx, join(str_props, ";"))
+    result = f()
+    add_to_cluster!(ctx, "} // cluster_$name")
+    ctx.current_place = old_place
+    return result
+end
+
+function in_context!(f, ctx::GraphBuilder, suffix)
+    old_context = ctx.context
+    ctx.context *= String(suffix)
+    result = f()
+    ctx.context = old_context
+    return result
 end
 
 function connect!(ctx::GraphBuilder, left, right; props...)
@@ -82,13 +109,45 @@ function node(name; props...)
     end
 end
 
-function new_id(ctx::GraphBuilder, prefix::Symbol)
-    return Symbol(prefix, "_", ctx.id_incr += 1)
+# function new_get_id(ctx::GraphBuilder, prefix::Symbol)
+#     return Symbol(prefix, "_", ctx.id_incr += 1)
+# end
+
+function get_id(ctx::GraphBuilder, object, prefix::Symbol, context)
+    x = context => object
+    if !haskey(ctx.added_entities, x)
+        if context == ""
+            new_id = Symbol(prefix, "_", ctx.id_incr += 1)
+        else
+            new_id = Symbol(context, "__", prefix, "_", ctx.id_incr += 1)
+        end
+        ctx.added_entities[x] = new_id
+        return new_id, true
+    else
+        return ctx.added_entities[x], false
+    end
 end
 
-function render!(ctx::GraphBuilder, a::Type{T}) where {T<:Artifact}
-    if !haskey(ctx.added_entities, a)
-        id = new_id(ctx, :artifact)
+function need_id(ctx::GraphBuilder, object)
+    @warn "need" keys(ctx.added_entities)
+    return ctx.added_entities[ctx.context=>object]
+end
+
+function need_id(ctx::GraphBuilder, object, context)
+    for k in keys(ctx.added_entities)
+        println(k)
+        println("=====")
+    end
+    return ctx.added_entities[context=>object]
+end
+
+function get_id(ctx::GraphBuilder, object, prefix::Symbol)
+    get_id(ctx, object, prefix, ctx.context)
+end
+
+function render!(ctx::GraphBuilder, a::Type{T}; primary = true) where {T<:Artifact}
+    id, new = get_id(ctx, a, :artifact)
+    if new
         name = short_name(ctx.shortener, a)
         label = "$name\n$(artifact_type(a))"
         add_to_cluster!(
@@ -97,14 +156,13 @@ function render!(ctx::GraphBuilder, a::Type{T}) where {T<:Artifact}
                 id;
                 label,
                 shape = "ellipse",
-                style = "filled",
+                style = primary ? "filled" : "",
                 color = "#4a7c59",
                 fillcolor = "#8fc0a9",
             ),
         )
-        ctx.added_entities[a] = id
     end
-    return ctx.added_entities[a]
+    return id
 end
 
 function render!(ctx::GraphBuilder, x)
@@ -112,36 +170,109 @@ function render!(ctx::GraphBuilder, x)
 end
 
 
-function render!(ctx::GraphBuilder, p::AlgorithmProvider)
-    if !haskey(ctx.added_entities, p)
-        id = new_id(ctx, :algorithm)
-        ctx.added_entities[p] = id
+function render!(
+    ctx::GraphBuilder,
+    p::AlgorithmProvider;
+    part_of_invoke = false,
+    subalgorithm = false,
+)
+    id, new = get_id(ctx, p, :provider)
+    if new
         name = short_name(ctx.shortener, p.call)
+        is_primary = ctx.primary == p
 
 
-        create_cluster!(ctx, id, label = "Algorithm $name") do
-            create_cluster!(ctx, "$(id)_inputs", label = "Inputs") do
-                for a in p.inputs
-                    render!(ctx, a)
+        heads = Dict()
+        tails = Dict()
+
+        delayed_connections = []
+
+        if !is_primary && !part_of_invoke
+            for a in inputs(p)
+                heads[a] = render!(ctx, a)
+            end
+            for a in outputs(p)
+                if subalgorithm
+                    tails[a] = render!(ctx, a, primary = false)
+                else
+                    tails[a] = render!(ctx, a)
                 end
             end
-            create_cluster!(ctx, "$(id)_outputs", label = "Outputs") do
-                # for a in p.output
-                render!(ctx, p.output)
-                # end
-            end
-            for x in p.plan.providers
-                render!(ctx, x)
+        end
+
+        @warn "A" ctx.clusters ctx.current_place
+
+        create = if is_primary || part_of_invoke
+            create_cluster!
+        else
+            create_subcluster!
+        end
+
+        create(ctx, id, label = "Algorithm $name") do
+            in_context!(ctx, id) do
+                create_subcluster!(ctx, "$(id)_inputs", label = "Inputs") do
+                    for a in inputs(p)
+                        to = render!(ctx, a; primary = is_primary)
+                        if haskey(heads, a)
+                            connect!(ctx, heads[a], to)
+                        end
+                    end
+                end
+
+                own_artifacts = filter(is_artifact, keys(p.context_outputs))
+
+                # @warn "O" own_artifacts outputs(p)
+
+                for a in own_artifacts
+                    if a ∉ outputs(p)
+                        render!(ctx, a)
+                    end
+                end
+
+                create_subcluster!(ctx, "$(id)_outputs", label = "Outputs") do
+                    for a in outputs(p)
+                        from = if a in own_artifacts
+                            render!(ctx, a)
+                        else
+                            in_context!(ctx, "outputs") do
+                                term = render!(ctx, a, primary = false)
+                                push!(delayed_connections, a => term)
+                                term
+                            end
+                        end
+                        if haskey(tails, a)
+                            connect!(
+                                ctx,
+                                from,
+                                tails[a];
+                                arrowhead = "none",
+                                color = "#4a7c59",
+                            )
+                        end
+                    end
+                end
+
+                add_to_cluster!(ctx, " // before providers")
+
+                for x in p.plan.providers
+                    render!(ctx, x; subalgorithm = true)
+                end
+
+                @warn "D" delayed_connections own_artifacts
+
+                for (a, to) in delayed_connections
+                    existing = need_id(ctx, a)
+                    connect!(ctx, existing, to; arrowhead = "none", color = "#4a7c59")
+                end
             end
         end
     end
-    return ctx.added_entities[p]
+    return id
 end
 
-function render!(ctx::GraphBuilder, p::CallableProvider)
-    if !haskey(ctx.added_entities, p)
-        id = new_id(ctx, :provider)
-        ctx.added_entities[p] = id
+function render!(ctx::GraphBuilder, p::CallableProvider; _...)
+    id, new = get_id(ctx, p, :provider)
+    if new
         name = short_name(ctx.shortener, p.call)
 
         descr = short_description(p)
@@ -170,14 +301,12 @@ function render!(ctx::GraphBuilder, p::CallableProvider)
             connect!(ctx, other, id)
         end
     end
-    return ctx.added_entities[p]
+    return id
 end
 
-function render!(ctx::GraphBuilder, p::PromoteProvider)
-    if !haskey(ctx.added_entities, p)
-        id = new_id(ctx, :promote)
-        ctx.added_entities[p] = id
-
+function render!(ctx::GraphBuilder, p::PromoteProvider; _...)
+    id, new = get_id(ctx, p, :promote)
+    if new
         name = short_name(ctx.shortener, p.call)
 
         add_to_cluster!(
@@ -195,13 +324,12 @@ function render!(ctx::GraphBuilder, p::PromoteProvider)
         connect!(ctx, id, render!(ctx, p.output))
         connect!(ctx, render!(ctx, p.input), id)
     end
-    return ctx.added_entities[p]
+    return id
 end
 
-function render!(ctx::GraphBuilder, p::ConditionalProvider)
-    if !haskey(ctx.added_entities, p)
-        id = new_id(ctx, :conditional)
-        ctx.added_entities[p] = id
+function render!(ctx::GraphBuilder, p::ConditionalProvider; _...)
+    id, new = get_id(ctx, p, :conditional)
+    if new
         name = short_name(ctx.shortener, p.call)
 
         add_to_cluster!(
@@ -221,29 +349,31 @@ function render!(ctx::GraphBuilder, p::ConditionalProvider)
         connect!(ctx, render!(ctx, p.if_false), id; label = "false")
         connect!(ctx, id, render!(ctx, p.output))
     end
-    return ctx.added_entities[p]
+    return id
 end
 
-function render!(ctx::GraphBuilder, p::GroupProvider)
-    if !haskey(ctx.added_entities, p)
-        id = new_id(ctx, :group)
-        ctx.added_entities[p] = id
+function render!(ctx::GraphBuilder, p::GroupProvider; _...)
+    id, new = get_id(ctx, p, :group)
+    if new
         name = short_name(ctx.shortener, p.call)
 
-        create_cluster!(ctx, id, label = "Group $name") do
+        create_subcluster!(ctx, id, label = "Group $name") do
+            for a in filter(is_artifact, keys(p.context))
+                render!(ctx, a)
+            end
+
             for p in p.plan.providers
                 render!(ctx, p)
             end
         end
     end
-    return ctx.added_entities[p]
+    return id
 end
 
 
-function render!(ctx::GraphBuilder, p::UnimplementedProvider)
-    if !haskey(ctx.added_entities, p)
-        id = new_id(ctx, :unimplemented)
-        ctx.added_entities[p] = id
+function render!(ctx::GraphBuilder, p::UnimplementedProvider; _...)
+    id, new = get_id(ctx, p, :unimplemented)
+    if new
         name = short_name(ctx.shortener, p.call)
 
         descr = short_description(p)
@@ -272,13 +402,12 @@ function render!(ctx::GraphBuilder, p::UnimplementedProvider)
             connect!(ctx, other, id)
         end
     end
-    return ctx.added_entities[p]
+    return id
 end
 
-function render!(ctx::GraphBuilder, p::InvokeProvider)
-    if !haskey(ctx.added_entities, p)
-        id = new_id(ctx, :invoke)
-        ctx.added_entities[p] = id
+function render!(ctx::GraphBuilder, p::InvokeProvider; _...)
+    id, new = get_id(ctx, p, :invoke)
+    if new
         name = short_name(ctx.shortener, p.call)
 
         descr = short_description(p)
@@ -300,7 +429,8 @@ function render!(ctx::GraphBuilder, p::InvokeProvider)
         inputs_label = []
         inputs_maps = []
         for a in inputs(p.algorithm)
-            a_id = new_id(ctx, Symbol(id, :_input))
+            a_id, _ = get_id(ctx, :invokeIn => a, :invokeIn)
+            # a_id = render!(ctx, a)
             a_replace = get(p.backward_substitutions, a, a)
             push!(inputs_maps, (a_id, a, a_replace))
             if a !== a_replace
@@ -316,7 +446,9 @@ function render!(ctx::GraphBuilder, p::InvokeProvider)
         outputs_label = []
         outputs_maps = []
         for a in outputs(p.algorithm)
-            a_id = new_id(ctx, Symbol(id, :_output))
+            a_id, _ = get_id(ctx, :invokeOut => a, :invokeOut)
+            # a_id = need_id(ctx, a)
+            # a_id = render!(ctx, a)
             a_replace = get(p.backward_substitutions, a, a)
             push!(outputs_maps, (a_id, a, a_replace))
             if a !== a_replace
@@ -334,291 +466,37 @@ function render!(ctx::GraphBuilder, p::InvokeProvider)
             node(
                 id;
                 shape = "record",
-                label = "{{$(join(inputs_label, "|"))}|$descr|{$(join(outputs_label,"|"))}}",
+                label = "{{$(join(inputs_label, "|"))}|<body>$descr|{$(join(outputs_label,"|"))}}",
                 # style = "filled",
                 # color = "#ff8c61",
                 # fillcolor = "#faa275",
             ),
         )
 
-        render!(ctx, p.algorithm)
+        alg_id = render!(ctx, p.algorithm, part_of_invoke = true)
+        target_id = need_id(ctx, inputs(p.algorithm)[1], "$(ctx.context)$alg_id")
+        connect!(ctx, "$id:body", target_id, lhead = "cluster_$alg_id")
 
         for (gate_id, a, a_replace) in outputs_maps
-            other = render!(ctx, a)
-            connect!(ctx, other, "$id:$gate_id")
+            # other = render!(ctx, a)
+            # connect!(ctx, other, "$id:$gate_id")
             if a !== a_replace
                 other = render!(ctx, a_replace)
                 connect!(ctx, "$id:$gate_id", other)
             end
         end
         for (gate_id, a, a_replace) in inputs_maps
-            other = render!(ctx, a)
-            connect!(ctx, "$id:$gate_id", other)
+            # other = render!(ctx, a)
+            # connect!(ctx, "$id:$gate_id", other)
             if a !== a_replace
                 other = render!(ctx, a_replace)
                 connect!(ctx, other, "$id:$gate_id")
             end
         end
     end
-    return ctx.added_entities[p]
+    return id
 end
 
-
-
-# const Grph = Union{GraphvizDotLang.Graph,GraphvizDotLang.Subgraph}
-
-# # GraphViz.
-
-# as_id(f::Function) = String(Symbol(parentmodule(f), '.', f))
-# as_id(t::Type) = String(Symbol(t))
-# as_id(s::Symbol) = String(s)
-
-# function node(id::String, port::Union{String,Nothing} = nothing; kwargs...)
-#     g -> begin
-
-#         nid = GraphvizDotLang.NodeId(id, port)
-#         nd = findfirst(
-#             el -> typeof(el) === GraphvizDotLang.NodeStmt && el.id == nid,
-#             g.stmt_list,
-#         )
-
-#         if nd === nothing
-#             g |> GraphvizDotLang.node(id, port; kwargs...)
-#         end
-#         g
-#     end
-# end
-
-
-# function visualize!(g::Grph, a::Type{<:Artifact}, _)
-#     id = as_id(a)
-#     g |> node(
-#         as_id(a),
-#         ;
-#         shape = "ellipse",
-#         label = "$id\n$(artifact_type(a))",
-#         style = "filled",
-#         color = "#4a7c59",
-#         fillcolor = "#8fc0a9",
-#     )
-# end
-
-# function visualize!(g::Grph, p::CallableProvider, root::Graph)
-#     id = as_id(p.call)
-#     descr = short_description(p)
-#     if isnothing(descr)
-#         descr = ""
-#     else
-#         descr = "\n$descr"
-#     end
-#     g |> node(
-#         id;
-#         shape = "rectangle",
-#         label = "$id$descr",
-#         style = "filled",
-#         color = "#ff8c61",
-#         fillcolor = "#faa275",
-#     )
-
-#     for inp in p.inputs
-#         visualize!(g, inp, root)
-#         g |> edge(as_id(inp), id)
-#     end
-
-#     visualize!(g, p.output, root)
-#     g |> edge(id, as_id(p.output))
-# end
-
-
-# function visualize!(g::Grph, p::UnimplementedProvider, root::Graph)
-#     id = as_id(p.call)
-#     descr = short_description(p)
-#     if isnothing(descr)
-#         descr = ""
-#     else
-#         descr = "\n$descr"
-#     end
-#     g |> node(
-#         id;
-#         shape = "hexagon",
-#         label = "$id$descr",
-#         style = "filled",
-#         color = "#ff8c61",
-#         fillcolor = "#faa275",
-#     )
-
-#     for inp in p.inputs
-#         visualize!(g, inp, root)
-#         g |> edge(as_id(inp), id)
-#     end
-
-#     visualize!(g, p.output, root)
-#     g |> edge(id, as_id(p.output))
-# end
-
-# function visualize!(g::Grph, p::ConditionalProvider, root::Graph)
-#     id = as_id(p.name)
-#     g |> node(
-#         id;
-#         shape = "diamond",
-#         label = "$id",
-#         style = "filled",
-#         color = "#b23a48",
-#         fillcolor = "#fcb902",
-#     )
-
-
-#     visualize!(g, p.condition, root)
-#     g |> edge(as_id(p.condition), id; label = "?")
-
-#     visualize!(g, p.if_true, root)
-#     g |> edge(as_id(p.if_true), id; label = "true")
-
-#     visualize!(g, p.if_false, root)
-#     g |> edge(as_id(p.if_false), id; label = "false")
-
-#     visualize!(g, p.output, root)
-#     g |> edge(id, as_id(p.output))
-# end
-
-# function visualize!(g::Grph, p::AlgorithmProvider, root::Graph)
-#     id = as_id(p.call)
-
-#     sub = g #subgraph(g, "cluster_" * id; label = id)
-
-#     sub_inputs =
-#         subgraph(sub, "cluster_" * id * "inputs"; label = "Inputs", style = "dashed")
-
-#     for inp in p.inputs
-#         visualize!(sub_inputs, inp, root)
-#     end
-
-#     sub_outputs =
-#         subgraph(sub, "cluster_$(id)_outputs", label = "Outputs", style = "dashed")
-
-#     visualize!(sub_outputs, p.output, root)
-
-#     for provider in p.plan.providers
-#         visualize!(sub, provider, root)
-#     end
-# end
-
-# function visualize!(g::Grph, p::InvokeProvider, root::Graph)
-#     visualize!(g, p.algorithm, root)
-# end
-
-# # function visualize!(g::Grph, p::ComposedProvider, root::Graph)
-# #     id = as_id(p.call)
-
-# #     sub_id = "cluster_composed_$(id)"
-
-# #     nd = findfirst(
-# #         el -> typeof(el) === GraphvizDotLang.NodeStmt && el.id == sub_id,
-# #         root.stmt_list,
-# #     )
-# #     if nd === nothing
-
-# #         sub = subgraph(root, sub_id; label = "$id implementation")
-
-# #         for inp in p.inputs
-# #             sub |> node(
-# #                 as_id(inp[1]);
-# #                 shape = "ellipse",
-# #                 label = "$(as_id(inp[1]))\n⇤ $(as_id(inp[2]))\n$(artifact_type(inp[1]))",
-# #                 style = "filled",
-# #                 color = "#5c374c",
-# #                 fillcolor = "#985277",
-# #             )
-# #         end
-
-# #         for inp in p.outputs
-# #             sub |> node(
-# #                 as_id(inp[2]);
-# #                 shape = "ellipse",
-# #                 label = "$(as_id(inp[2]))\n⇥ $(as_id(inp[1]))\n$(artifact_type(inp[2]))",
-# #                 style = "filled",
-# #                 color = "#5c374c",
-# #                 fillcolor = "#985277",
-# #             )
-# #         end
-
-# #         for provider in p.plan.providers
-# #             visualize!(sub, provider, root)
-# #         end
-# #     end
-
-# #     g |> node(
-# #         id;
-# #         label = id,
-# #         shape = "component",
-# #         style = "filled",
-# #         color = "#5c374c",
-# #         fillcolor = "#985277",
-# #     )
-
-# #     g |> edge(
-# #         id,
-# #         as_id(first(p.plan.inputs)),
-# #         lhead = sub_id,
-# #         arrowhead = "none",
-# #         style = "dotted",
-# #         constraint = "false",
-# #     )
-
-# #     for inp in inputs(p)
-# #         visualize!(g, inp, root)
-# #         g |> edge(as_id(inp), id)
-# #     end
-# #     for out in outputs(p)
-# #         visualize!(g, out, root)
-# #         g |> edge(id, as_id(out))
-# #     end
-# # end
-
-# function visualize!(g::Grph, p::PromoteProvider, root::Graph)
-#     id = as_id(p.call)
-
-#     visualize!(g, p.input, root)
-#     visualize!(g, p.output, root)
-
-#     g |> node(
-#         id;
-#         shape = "rpromoter",
-#         label = id,
-#         style = "filled",
-#         color = "#e6b89c",
-#         fillcolor = "#ead2ac",
-#     )
-#     g |> edge(as_id(p.input), id)
-#     g |> edge(id, as_id(p.output))
-# end
-
-# function visualize!(g::Grph, p::GroupProvider, root::Graph)
-#     id = as_id(p.call)
-
-#     sub = subgraph(g, "cluster_group_$id#aside"; label = "Group $id")
-#     for provider in p.plan.providers
-#         visualize!(sub, provider, root)
-#     end
-
-#     # g |> node(id; label = id)
-
-#     # for inp in inputs(p)
-#     #     visualize!(g, inp)
-#     #     g |> edge(as_id(inp), id)
-#     # end
-#     # for out in outputs(p)
-#     #     visualize!(g, out)
-#     #     g |> edge(id, as_id(out))
-#     # end
-
-# end
-
-# function visualize(p::AbstractProvider)
-#     g = digraph(compound = "true")
-#     visualize!(g, p, g)
-#     return g
-# end
 
 # function visualize(lst::Vector)
 #     providers = collect_providers(lst)
@@ -627,13 +505,26 @@ end
 #     return g
 # end
 
-# function visualize(p)
-#     visualize(describe_provider(p))
-# end
+function as_dot(p; mod = Main)
+    g = GraphBuilder(; mod)
+    p = describe_provider(p)
+    g.primary = p
+    render!(g, p)
+    as_dot(g)
+end
 
-# function render(g::Graph)
-#     io = IOBuffer()
-#     print(io, g)
-#     return GraphViz.Graph(String(take!(io)))
-# end
+function as_dot(providers::Vector; mod = Main)
+    g = GraphBuilder(; mod)
+    g.primary = nothing
+    for p in providers
+        render!(g, p)
+    end
+    as_dot(g)
+end
 
+function visualize(p; mod = Main)
+    dot = as_dot(p; mod)
+    grph = GraphViz.Graph(dot)
+    # GraphViz.layout!(grph, engine = "dot")
+    grph
+end
