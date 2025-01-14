@@ -23,7 +23,7 @@ end
 
 @algorithm C1[U2](AA1)::AA2 implement = false
 
-@use C1_impl = C1{A1 => AA1,AA2 => A2}
+@invoke_with C1_impl = C1{A1 => AA1,AA2 => A2}
 
 @group G1 U1
 
@@ -43,8 +43,11 @@ end
         p1 = describe_provider(P1)
         g1 = describe_provider(G1)
 
-        new_group =
-            FunctionFusion.GroupProvider(g1.call, g1.context, FunctionFusion.ExecutionPlan([p1]))
+        new_group = FunctionFusion.GroupProvider(
+            g1.call,
+            g1.context,
+            FunctionFusion.ExecutionPlan([p1]),
+        )
 
         @test collect_providers([G1, substitute(U1, P1), P2]) ==
               [new_group, describe_provider(P2)]

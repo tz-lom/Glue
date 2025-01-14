@@ -21,7 +21,6 @@ end
 function short_name(ctx::NameShortener, @nospecialize(x))
     postfix = ""
     while true
-        # @warn "?" name name in all_names
         if haskey(ctx.values, x)
             return "$(ctx.values[x])$postfix"
         end
@@ -129,15 +128,10 @@ function get_id(ctx::GraphBuilder, object, prefix::Symbol, context)
 end
 
 function need_id(ctx::GraphBuilder, object)
-    @warn "need" keys(ctx.added_entities)
     return ctx.added_entities[ctx.context=>object]
 end
 
 function need_id(ctx::GraphBuilder, object, context)
-    for k in keys(ctx.added_entities)
-        println(k)
-        println("=====")
-    end
     return ctx.added_entities[context=>object]
 end
 
@@ -200,7 +194,6 @@ function render!(
             end
         end
 
-        @warn "A" ctx.clusters ctx.current_place
 
         create = if is_primary || part_of_invoke
             create_cluster!
@@ -220,8 +213,6 @@ function render!(
                 end
 
                 own_artifacts = filter(is_artifact, keys(p.context_outputs))
-
-                # @warn "O" own_artifacts outputs(p)
 
                 for a in own_artifacts
                     if a ∉ outputs(p)
@@ -257,8 +248,6 @@ function render!(
                 for x in p.plan.providers
                     render!(ctx, x; subalgorithm = true)
                 end
-
-                @warn "D" delayed_connections own_artifacts
 
                 for (a, to) in delayed_connections
                     existing = need_id(ctx, a)
