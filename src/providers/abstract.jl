@@ -1,5 +1,3 @@
-using Markdown
-
 """
     AbstractProvider
 
@@ -96,14 +94,14 @@ function collect_providers(lst)
     return providers
 end
 
-function extract_short_description(doc::Markdown.MD)
-    descr = string(Markdown.MD(doc.content[1]))
-    if startswith(descr, "No documentation found")
-        return nothing
-    else
-        return descr
-    end
-end
+# function extract_short_description(doc::Markdown.MD)
+#     descr = string(Markdown.MD(doc.content[1]))
+#     if startswith(descr, "No documentation found")
+#         return nothing
+#     else
+#         return descr
+#     end
+# end
 
 function short_description(p::AbstractProvider)
     return nothing
