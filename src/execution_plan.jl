@@ -1,7 +1,7 @@
 
 struct ExecutionPlan
     providers::OrderedSet{AbstractProvider}
-    provider_for_artifact::Dict{Type{<:Artifact},AbstractProvider}
+    provider_for_artifact::OrderedDict{Type{<:Artifact},AbstractProvider}
     artifacts::OrderedSet{Type{<:Artifact}}
     inputs::OrderedSet{Type{<:Artifact}}
     outputs::OrderedSet{Type{<:Artifact}}
