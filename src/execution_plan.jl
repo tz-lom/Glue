@@ -8,7 +8,7 @@ struct ExecutionPlan
     can_generate::OrderedSet{Type{<:Artifact}}
 
     function ExecutionPlan(providers)
-        provider_for_artifact = Dict{Type{<:Artifact},AbstractProvider}()
+        provider_for_artifact = OrderedDict{Type{<:Artifact},AbstractProvider}()
 
 
         input_set = OrderedSet{Type{<:Artifact}}()

@@ -77,7 +77,7 @@ function define_algorithm(
     ctx_name = Symbol(name, "Context")
     ctx_name_outputs = Symbol(name, "ContextOutputs")
 
-    artifacts = Set()
+    artifacts = OrderedSet()
     for provider in providers
         storage_container = storage(provider)
         if typeof(storage_container) <: Set

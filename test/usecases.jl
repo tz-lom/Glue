@@ -9,7 +9,7 @@ export verifyEquals, @verifyVisualization
 using InteractiveUtils: code_native
 using Test
 using FunctionFusion
-using GraphvizDotLang: save
+using DeepDiffs
 
 function signature(f)
     m = methods(f)
@@ -59,7 +59,11 @@ function verifyEquals(generated, expected, arguments...)
     )
     generated_native = String(take!(io))
 
-    @test expected_native == generated_native
+    if expected_native != generated_native
+        println(deepdiff(expected_native, generated_native))
+        @test true == false
+    end
+
 end
 
 
@@ -82,7 +86,10 @@ function verifyVisualization(mod, to_visualize, expected)
 
     expected_str = read(expected_dot, String)
     # is_same_dot = result == expected_str
-    @test dot == expected_str
+    if dot != expected_str
+        println(deepdiff(expected_str, dot))
+        @test false == true
+    end
 
 end
 
@@ -96,7 +103,7 @@ function test()
 
     usecases() = filter(endswith(".jl"), readdir(joinpath(@__DIR__, "usecases")))
 
-    @testset verbose = true for file in usecases()
+    @testset for file in usecases()
         include(joinpath(@__DIR__, "usecases", file))
     end
 
