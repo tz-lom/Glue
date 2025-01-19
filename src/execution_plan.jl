@@ -1,24 +1,25 @@
 
 struct ExecutionPlan
-    providers::Set{AbstractProvider}
-    provider_for_artifact::Dict{Type{<:Artifact},AbstractProvider}
-    artifacts::Set{Type{<:Artifact}}
-    inputs::Set{Type{<:Artifact}}
-    outputs::Set{Type{<:Artifact}}
+    providers::OrderedSet{AbstractProvider}
+    provider_for_artifact::OrderedDict{Type{<:Artifact},AbstractProvider}
+    artifacts::OrderedSet{Type{<:Artifact}}
+    inputs::OrderedSet{Type{<:Artifact}}
+    outputs::OrderedSet{Type{<:Artifact}}
+    can_generate::OrderedSet{Type{<:Artifact}}
 
     function ExecutionPlan(providers)
-        provider_for_artifact = Dict{Type{<:Artifact},AbstractProvider}()
+        provider_for_artifact = OrderedDict{Type{<:Artifact},AbstractProvider}()
 
 
-        input_set = Set{Type{<:Artifact}}()
-        output_set = Set{Type{<:Artifact}}()
+        input_set = OrderedSet{Type{<:Artifact}}()
+        output_set = OrderedSet{Type{<:Artifact}}()
 
         for provider in providers
-            for input in Glue.inputs(provider)
+            for input in FunctionFusion.inputs(provider)
                 push!(input_set, input)
             end
 
-            for output in Glue.outputs(provider)
+            for output in FunctionFusion.outputs(provider)
                 provider_for_artifact[output] = provider
                 push!(output_set, output)
             end
@@ -29,6 +30,28 @@ struct ExecutionPlan
         outputs = setdiff(output_set, input_set)
 
 
-        return new(Set(providers), provider_for_artifact, artifacts, inputs, outputs)
+        return new(
+            OrderedSet(providers),
+            provider_for_artifact,
+            artifacts,
+            inputs,
+            outputs,
+            output_set,
+        )
     end
 end
+
+function Base.:(==)(left::ExecutionPlan, right::ExecutionPlan)
+    return left.providers == right.providers
+end
+
+Base.hash(x::ExecutionPlan, h::UInt = UInt(0)) = hash(x.providers, h)
+
+Base.show(io::IO, p::ExecutionPlan) = print(
+    io,
+    """ExecutionPlan
+  inputs = $((p.inputs...,))
+  outputs = $((p.outputs...,))
+  can_generate = $((p.can_generate...,))
+  providers = $((p.providers...,))""",
+)

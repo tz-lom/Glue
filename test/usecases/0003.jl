@@ -1,7 +1,7 @@
 module TestCase0003
 
 using ..Utils
-using Glue
+using FunctionFusion
 
 @artifact A1 = Int
 @artifact A2 = Int
@@ -18,17 +18,19 @@ end
 @artifact F1_in = Int
 @artifact F1_out = Int
 
-@compose C1[P1, P2] where {(F1_in => A1, A3 => F1_out)}
+@algorithm N1[P1, P2](A1)::A3
+@invoke_with I1 = N1{A1 => F1_in,A3 => F1_out}
 
 
-@algorithm generated[C1](F1_in)::F1_out
+@algorithm generated[I1](F1_in)::F1_out
 
 function expected(a::Int)::Int
     return (a + 1) * 10
 end
 
 verifyEquals(generated, expected, 1)
-verifySvg(generated, "0003")
+
+@verifyVisualization(generated, "0003")
 
 
 end

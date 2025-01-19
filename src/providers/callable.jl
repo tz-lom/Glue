@@ -2,11 +2,10 @@
 
 struct CallableProvider <: AbstractProvider
     call::Function
-    doc::Markdown.MD
     inputs::Tuple{Vararg{DataType}}
     output::Type{<:Artifact}
 
-    function CallableProvider(call, doc::Markdown.MD, inputs, output)
+    function CallableProvider(call, inputs, output)
         name = Symbol(call)
         unique_inputs = Set(inputs)
         if length(unique_inputs) != length(inputs)
@@ -15,24 +14,27 @@ struct CallableProvider <: AbstractProvider
         if output in unique_inputs
             error("Output type $output should not be an input for provider $name")
         end
-        new(call, doc, inputs, output)
+        new(call, inputs, output)
     end
 end
 
 inputs(p::CallableProvider) = p.inputs
 outputs(p::CallableProvider) = (p.output,)
 storage(p::CallableProvider) = p.output
-short_description(p::CallableProvider) = extract_short_description(p.doc)
+# short_description(p::CallableProvider) = extract_short_description(p.doc)
 
-function provide(p::CallableProvider, result::Type, storage, source)
+Base.show(io::IO, p::CallableProvider) =
+    print(io, "CallableProvider $(nameof(p.call))$(p.inputs)::$(p.output)")
+
+function provide(p::CallableProvider, result::Type, context, resolve)
     if (p.output != result)
         error("$p can't provide $result")
     end
     return quote
-        if isnothing($storage)
-            $storage = $p.call($([source(i) for i in p.inputs]...))
+        if isnothing($context[$result])
+            $context[$result] = $(p.call)($([resolve(i) for i in p.inputs]...))
         end
-        something($storage)
+        something($context[$result])
     end
 end
 
@@ -99,14 +101,14 @@ All inputs + output must be unique artifacts.
 
 """
 macro provider(func::Expr)
+    # Helper function to extract the artifact type
+    extract_type = (type) -> :($artifact_type($type))
+
     @match func begin
         # Match the expression format of a function definition
         Expr(:function, _) => begin
             # Read the function signature
             sig = read_function_signature(func)
-
-            # Helper function to extract the artifact type
-            extract_type = (type) -> :($artifact_type($type))
 
             # Create a new function signature with artifact types
             new_signature = Expr(
@@ -134,43 +136,67 @@ macro provider(func::Expr)
             return quote
                 Core.@__doc__ $(esc(new_function))
 
-                local definition = CallableProvider(
-                    $name,
-                    Base.Docs.doc(Base.Docs.Binding($__module__, $(QuoteNode(sig.name)))),
-                    ($(inputs...),),
-                    $output,
-                )
+                local definition =
+                    $FunctionFusion.CallableProvider($name, ($(inputs...),), $output)
 
-                function Glue.describe_provider(::typeof($name))
+                function $FunctionFusion.describe_provider(::typeof($name))
                     return definition
                 end
 
-                Glue.is_provider(::typeof($name)) = true
+                $FunctionFusion.is_provider(::typeof($name)) = true
             end
         end
+        # Match the expression format of a short function definition
+        Expr(:(=), [Expr(:(::), [Expr(:call, [name, args...]), result]), body]) => begin
+            new_args =
+                map((arg,) -> Expr(:(::), arg.args[1], extract_type(arg.args[2])), args)
+            inputs = map((arg) -> esc(arg.args[2]), args)
+            output = extract_type(result)
+
+            esc_name = esc(name)
+
+            new_function =
+                Expr(:(=), Expr(:(::), Expr(:call, name, new_args...), output), body)
+
+            return quote
+                Core.@__doc__ $(esc(new_function))
+
+                local definition = $FunctionFusion.CallableProvider(
+                    $esc_name,
+                    ($(inputs...),),
+                    $(esc(result)),
+                )
+
+                function $FunctionFusion.describe_provider(::typeof($esc_name))
+                    return definition
+                end
+
+                $FunctionFusion.is_provider(::typeof($esc_name)) = true
+            end
+        end
+
         # Match the expression format of a pre-defined function with inputs and output
         Expr(:(::), [Expr(:call, [name, inputs...]), output]) => begin
             name = esc(name)
             inputs = map(esc, inputs)
             output = esc(output)
+            docname = gensym(:doc)
             return quote
-                Core.@__doc__ local doc = nothing
-                local definition = Glue.CallableProvider(
-                    $name,
-                    (@doc doc),
-                    ($(inputs...),),
-                    $output,
-                )
+                Core.@__doc__ $(esc(docname))() = nothing
+                local definition =
+                    $FunctionFusion.CallableProvider($name, ($(inputs...),), $output)
+                Base.delete_method(Base.which($(esc(docname)), ()))
 
-                function Glue.describe_provider(::typeof($name))
+                function $FunctionFusion.describe_provider(::typeof($name))
                     return definition
                 end
 
-                Glue.is_provider(::typeof($name)) = true
+                $FunctionFusion.is_provider(::typeof($name)) = true
             end
         end
         # Match the expression format of a provider alias
         Expr(:(=), [name, Expr(:(::), [Expr(:call, [alias, inputs...]), output])]) => begin
+            qname = QuoteNode(name)
             name = esc(name)
             alias = esc(alias)
             inputs = map(esc, inputs)
@@ -179,20 +205,15 @@ macro provider(func::Expr)
             return quote
 
                 Core.@__doc__ $name(args...) = $alias(args...)
-                Core.@__doc__ local doc = nothing
 
-                local definition = Glue.CallableProvider(
-                    $name,
-                    (@doc $name),
-                    ($(inputs...),),
-                    $output,
-                )
+                local definition =
+                    $FunctionFusion.CallableProvider($name, ($(inputs...),), $output)
 
-                function Glue.describe_provider(::typeof($name))
+                function $FunctionFusion.describe_provider(::typeof($name))
                     return definition
                 end
 
-                Glue.is_provider(::typeof($name)) = true
+                $FunctionFusion.is_provider(::typeof($name)) = true
             end
         end
         _ => throw(DomainError(func, "Can't make provider with given definition"))

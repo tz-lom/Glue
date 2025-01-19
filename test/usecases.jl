@@ -4,12 +4,12 @@ using Test
 
 module Utils
 
-export verifyEquals, verifySvg
+export verifyEquals, @verifyVisualization
 
 using InteractiveUtils: code_native
 using Test
-using Glue
-using GraphvizDotLang: save
+using FunctionFusion
+using DeepDiffs
 
 function signature(f)
     m = methods(f)
@@ -59,25 +59,42 @@ function verifyEquals(generated, expected, arguments...)
     )
     generated_native = String(take!(io))
 
-    @test expected_native == generated_native
+    if expected_native != generated_native
+        println(deepdiff(expected_native, generated_native))
+        @test true == false
+    end
+
 end
 
 
-function verifySvg(to_visualize, expected)
-    g = Glue.visualize(to_visualize)
+function verifyVisualization(mod, to_visualize, expected)
+    update = haskey(ENV, "UPDATE_VISUAL_TESTS")
+    dot = FunctionFusion.as_dot(to_visualize; mod)
 
-    mktemp() do fname, _
-        save(g, fname)
+    expected_dot = joinpath(@__DIR__, "visualized", expected * ".dot")
 
-        result = read(fname, String)
+    if update
+        write(expected_dot, dot)
 
-        expected_path = joinpath(@__DIR__, "svgs", expected * ".svg")
-
-        cp(fname, expected_path; force = true)
-
-        expected_str = read(expected_path, String)
-        @test result == expected_str
+        expected_png = joinpath(@__DIR__, "visualized", expected * ".png")
+        # png_io = IOBuffer()
+        # run(pipeline(`dot -Tpng`; stdin = IOBuffer(dot), stdout = png_io))
+        # png = String(take!(png_io))
+        # write(expected_png, png)
+        run(`dot -Tpng $expected_dot -o$expected_png`)
     end
+
+    expected_str = read(expected_dot, String)
+    # is_same_dot = result == expected_str
+    if dot != expected_str
+        println(deepdiff(expected_str, dot))
+        @test false == true
+    end
+
+end
+
+macro verifyVisualization(to_visualize, expected)
+    return esc(:($verifyVisualization($__module__, $to_visualize, $expected)))
 end
 
 end
@@ -86,10 +103,11 @@ function test()
 
     usecases() = filter(endswith(".jl"), readdir(joinpath(@__DIR__, "usecases")))
 
-    @testset verbose = true for file in usecases()
+    @testset for file in usecases()
         include(joinpath(@__DIR__, "usecases", file))
     end
 
+    # include(joinpath(@__DIR__, "usecases", "0003.jl"))
 end
 
 end

@@ -1,6 +1,6 @@
 module Test_actifact_and_provider
-using Test, Glue
-using Glue: is_artifact, artifact_type, is_provider, describe_provider
+using Test, FunctionFusion
+using FunctionFusion: is_artifact, artifact_type, is_provider, describe_provider
 
 @testset "Declare artifact" begin
     @artifact A = Int

@@ -1,11 +1,11 @@
 struct ConditionalProvider <: AbstractProvider
-    name::Symbol
+    call::Function
     condition::Type{<:Artifact}
     if_true::Type{<:Artifact}
     if_false::Type{<:Artifact}
     output::Type{<:Artifact}
 
-    function ConditionalProvider(name, condition, if_true, if_false, output)
+    function ConditionalProvider(call, condition, if_true, if_false, output)
         if artifact_type(condition) != Bool
             error("Conditional provider requires `condition` artifact of type Bool")
         end
@@ -20,7 +20,7 @@ struct ConditionalProvider <: AbstractProvider
             )
         end
 
-        return new(name, condition, if_true, if_false, output)
+        return new(call, condition, if_true, if_false, output)
     end
 end
 
@@ -33,14 +33,14 @@ function provide(p::ConditionalProvider, result::Type, storage, source)
         error("$p can't provide $result")
     end
     return quote
-        if isnothing($storage)
-            $storage = if $(source(p.condition))
+        if isnothing($storage[$result])
+            $storage[$result] = if $(source(p.condition))
                 $(source(p.if_true))
             else
                 $(source(p.if_false))
             end
         end
-        something($storage)
+        something($storage[$result])
     end
 end
 
@@ -74,19 +74,21 @@ macro conditional(e::Expr)
             if_false = esc(if_false)
             output = esc(output)
             return quote
-                $name = Glue.ConditionalProvider(
-                    $sname,
+                function $name() end #@todo: implement conditional here
+
+                local definition = FunctionFusion.ConditionalProvider(
+                    $name,
                     $condition,
                     $if_true,
                     $if_false,
                     $output,
                 )
 
-                function Glue.describe_provider(::typeof($name))
-                    return $name  
+                function FunctionFusion.describe_provider(::typeof($name))
+                    return definition
                 end
-                
-                Glue.is_provider(::typeof($name)) = true
+
+                FunctionFusion.is_provider(::typeof($name)) = true
             end
         end
         _ => throw(DomainError(e, "Can't make conditional provider from given definition"))

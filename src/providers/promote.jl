@@ -24,10 +24,10 @@ function provide(p::PromoteProvider, result::Type, storage, source)
         error("$p can't provide $result")
     end
     return quote
-        if isnothing($storage)
-            $storage = $(source(p.input))
+        if isnothing($storage[$result])
+            $storage[$result] = $(source(p.input))
         end
-        something($storage)
+        something($storage[$result])
     end
 end
 
@@ -47,10 +47,10 @@ macro promote(name::Symbol, input::Symbol, output::Symbol)
 
         $name(a::$artifact_type($input))::$artifact_type($output) = a
 
-        const provider = Glue.PromoteProvider($name, $input, $output)
+        const provider = FunctionFusion.PromoteProvider($name, $input, $output)
 
 
-        function Glue.describe_provider(::typeof($name))
+        function FunctionFusion.describe_provider(::typeof($name))
             return provider
         end
     end

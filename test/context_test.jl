@@ -1,16 +1,16 @@
 
 module Test_context
-using Test, Glue
+using Test, FunctionFusion
 @testset "@context" begin
     @artifact A = Int
     @artifact B = String
     @artifact C = Float64
 
-    Glue.@context Ctx A B C
+    FunctionFusion.@context Ctx A B C
     ctx = Ctx()
-    @test all(values(ctx)) do (_, x)
-        isnothing(x)
-    end == true
+    @test isnothing(ctx[A])
+    @test isnothing(ctx[B])
+    @test isnothing(ctx[C])
 
     ctx[A] = 4
     ctx[B] = "foo"
@@ -23,7 +23,7 @@ using Test, Glue
 end
 
 module Foo
-using Glue
+using FunctionFusion
 @artifact A = Int
 @artifact B = String
 end
@@ -31,7 +31,7 @@ end
 @testset "@context with types from other modules" begin
 
 
-    Glue.@context Ctx2 Foo.A Foo.B
+    FunctionFusion.@context Ctx2 Foo.A Foo.B
     ctx = Ctx2()
 
     @test isnothing(ctx[Foo.A])

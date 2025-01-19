@@ -1,7 +1,7 @@
 module TestCase0002
 
 using ..Utils
-using Glue
+using FunctionFusion
 
 @artifact A1 = Int
 @artifact A2 = Int
@@ -39,7 +39,7 @@ end
 verifyEquals(generated, expected, 1, false)
 verifyEquals(generated, expected, 1, true)
 
-verifySvg(generated, "0002")
+@verifyVisualization(generated, "0002")
 
 
 end

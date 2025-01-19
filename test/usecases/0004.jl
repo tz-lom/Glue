@@ -4,7 +4,7 @@ using ..Utils
 
 # using Test
 
-using Glue
+using FunctionFusion
 
 @artifact A1 = Int
 @artifact A2 = Int
@@ -19,7 +19,8 @@ function expected(a::Int)::Int
 end
 
 verifyEquals(generated, expected, 42)
-verifySvg(generated, "0004")
+
+@verifyVisualization(generated, "0004")
 
 end
 
