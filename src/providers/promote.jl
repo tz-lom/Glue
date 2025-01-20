@@ -32,26 +32,27 @@ function provide(p::PromoteProvider, result::Type, storage, source)
 end
 
 """
-    @promote name input output
+    @promote name(Input)::Output
 
-Defines promote provider that assigns data from the `input` Artifact to the `output` Artifact.
+Defines promote provider that assigns data from the `Input` Artifact to the `Output` Artifact.
 Both Artifacts have to share same data type.
 """
-macro promote(name::Symbol, input::Symbol, output::Symbol)
-    name = esc(name)
-    input = esc(input)
-    output = esc(output)
+macro promote(expr)
+    return @match expr begin
+        Expr(:(::), [Expr(:call, [name, input]), output]) => begin
+            name = esc(name)
+            input = esc(input)
+            output = esc(output)
+            return quote
+                $name(a::$artifact_type($input))::$artifact_type($output) = a
 
+                const provider = FunctionFusion.PromoteProvider($name, $input, $output)
 
-    return quote
-
-        $name(a::$artifact_type($input))::$artifact_type($output) = a
-
-        const provider = FunctionFusion.PromoteProvider($name, $input, $output)
-
-
-        function FunctionFusion.describe_provider(::typeof($name))
-            return provider
+                function FunctionFusion.describe_provider(::typeof($name))
+                    return provider
+                end
+            end
         end
+        _ => throw(DomainError(expr, "Unsupported syntax"))
     end
 end

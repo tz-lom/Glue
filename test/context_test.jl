@@ -6,7 +6,7 @@ using Test, FunctionFusion
     @artifact B = String
     @artifact C = Float64
 
-    FunctionFusion.@context Ctx A B C
+    FunctionFusion.@context Ctx = [A, B, C]
     ctx = Ctx()
     @test isnothing(ctx[A])
     @test isnothing(ctx[B])
@@ -31,7 +31,7 @@ end
 @testset "@context with types from other modules" begin
 
 
-    FunctionFusion.@context Ctx2 Foo.A Foo.B
+    FunctionFusion.@context Ctx2 = [Foo.A, Foo.B]
     ctx = Ctx2()
 
     @test isnothing(ctx[Foo.A])

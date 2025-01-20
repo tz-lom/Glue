@@ -10,8 +10,8 @@ using FunctionFusion
 
 @provider P2(a::A1)::A3 = "P2($a)"
 
-@algorithm Alg1[P1](A1)::A2
-@algorithm Alg2[P2](A1)::A3
+@algorithm Alg1(A1)::A2 = [P1]
+@algorithm Alg2(A1)::A3 = [P2]
 
 
 @verifyVisualization([Alg1, Alg2, P1], "0012")

@@ -24,7 +24,7 @@ end
 @conditional C1::A4 = B1 ? A2 : A3
 
 
-@algorithm generated[P1, P2, C1](A1, B1)::A4
+@algorithm generated(A1, B1)::A4 = [P1, P2, C1]
 
 
 function expected(a::Int, b::Bool)

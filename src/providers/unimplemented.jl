@@ -33,7 +33,7 @@ end
 
 
 """
-    @unimplemented name(arg::Artifact, ...)::Artifact
+    @unimplemented name(Artifact, ...)::Artifact
    
 Declares an Unimplemented provider with given inputs and output.
 All inputs + output must be unique artifacts.
@@ -63,9 +63,7 @@ macro unimplemented(func::Expr)
                 $FunctionFusion.is_provider(::typeof($name)) = true
             end
         end
-        _ => throw(
-            DomainError(func, "Can't make unimplemented provider from given definition"),
-        )
+        _ => throw(DomainError(func, "Unsupported syntax"))
     end
 end
 

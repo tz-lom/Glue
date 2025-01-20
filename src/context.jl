@@ -144,7 +144,7 @@ function define_context(context_name, artifacts...)
 end
 
 """
-    @context(name, artifacts_or_contexts...)
+    @context name = [artifacts_or_contexts...]
 
 Creates structure `name` which contains set of artifacts and contexts.
 This structure implements single write, so it's elements can be stored only once.
@@ -153,7 +153,7 @@ Access to elements of the structure is done via index operator `[]` where key is
 Example:
 ```
 @artifact A,B Int
-@context Ctx A B
+@context Ctx = [A, B]
 
 ctx = Ctx()
 isnothing(ctx[A]) == true
@@ -163,12 +163,17 @@ isnothing(ctx[A]) == false
 ```
 
 """
-macro context(name, artifacts...)
-    return quote
-        Base.eval(
-            $__module__,
-            $define_context($(QuoteNode(name)), $([esc(a) for a in artifacts]...)),
-        )
+macro context(expr)
+    return @match expr begin
+        Expr(:(=), [name, Expr(:vect, artifacts)]) => begin
+            quote
+                Base.eval(
+                    $__module__,
+                    $define_context($(QuoteNode(name)), $([esc(a) for a in artifacts]...)),
+                )
+            end
+        end
+        _ => throw(DomainError(expr, "Unsupported syntax"))
     end
 end
 
