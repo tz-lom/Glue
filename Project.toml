@@ -1,7 +1,7 @@
 name = "FunctionFusion"
 uuid = "d89a494f-3841-4324-82bc-a003799788bd"
 authors = ["Yury Nuzhdin <nuzhdin.urii@gmail.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 GraphViz = "f526b714-d49f-11e8-06ff-31ed36ee7ee0"
@@ -12,4 +12,4 @@ OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 GraphViz = "~0.2"
 Match = "^2.0"
 OrderedCollections = "1.7.0"
-julia = ">=1.9"
+julia = "1.9 - 2.0"
