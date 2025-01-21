@@ -17,10 +17,10 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        version: ['lts', 'pre']
-        arch: x64
-        os: ubuntu-latest
-        experimental: false
+        version: ['lts', 'pre', 'nightly']
+        arch: [x64]
+        os: [ubuntu-latest]
+        experimental: [false]
         include:
         - version: 'nightly'
           experimental: true
