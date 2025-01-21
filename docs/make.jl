@@ -15,4 +15,4 @@ makedocs(
     ],
 )
 
-deploydocs(repo = "github.com/tz-lom/FunctionFusion.jl.git")
+deploydocs(repo = "github.com/tz-lom/FunctionFusion.jl.git", push_preview = true)

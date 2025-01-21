@@ -13,25 +13,27 @@ permissions:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
-        julia-version: ['lts', 'pre', 'nightly']
-        julia-arch:
-        - x64
-        os: 
-        - ubuntu-latest
+        version: ['lts', 'pre']
+        experimental: [false]
+        include:
+        - version: 'nightly'
+          experimental: true
+      
 
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:
-          version: ${{ matrix.julia-version }}
-          arch: ${{ matrix.julia-arch }}
+          version: ${{ matrix.version }}
+          arch: x64
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+        continue-on-error: ${{ matrix.experimental }}
         with:
           coverage: false
       # - uses: julia-actions/julia-processcoverage@v1
