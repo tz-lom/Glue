@@ -9,11 +9,10 @@ jobs:
   Documenter:
     name: Documentation
     permissions:
+      actions: write
       contents: write
-      statuses: write
       pull-requests: read
       statuses: write
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
