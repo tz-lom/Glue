@@ -76,7 +76,9 @@ function define_invoke(name, algorithm, algorithm_name, substitutions)
     out = replace(outputs(algorithm_p), substitutions...)
 
     return quote
-        $FunctionFusion.@context $context_name $(storage(algorithm_p)) $(out...)
+        eval(
+            $define_context($(QuoteNode(context_name)), $(storage(algorithm_p)), $(out...)),
+        )
 
         function $name()
             error($("$name shall not be called directly"))

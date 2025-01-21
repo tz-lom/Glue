@@ -153,8 +153,8 @@ function define_algorithm(
 
     return quote
 
-        $FunctionFusion.@context($ctx_name, $(artifacts...))
-        $FunctionFusion.@context($ctx_name_outputs, $(only_outputs...))
+        eval($define_context($(QuoteNode(ctx_name)), $(artifacts...)))
+        eval($define_context($(QuoteNode(ctx_name_outputs)), $(only_outputs...)))
 
         $impl
 
@@ -169,7 +169,7 @@ function define_algorithm(
 end
 
 """
-    @algorithm name[Providers](Input,...)::Output[,Output...]
+    @algorithm name(Input,...)::Output = [Providers]
 
 Generates function that implements the algorithm to compute given `Output`s from `Input`s using `Providers`
 """
@@ -186,8 +186,11 @@ macro algorithm(params...)
     for expr in params
         @match expr begin
             Expr(
-                :(::),
-                [Expr(:(call), [Expr(:ref, [name_, providers_...]), args_...]), output_],
+                :(=),
+                [
+                    Expr(:(::), [Expr(:call, [name_, args_...]), output_]),
+                    Expr(:block, [_, Expr(:vect, providers_)]),
+                ],
             ) => begin
                 name = name_
                 providers = providers_
@@ -198,7 +201,7 @@ macro algorithm(params...)
                 implement = false
                 implement! = false
             end
-            _ => error("Unsupported syntax: $(expr)")
+            _ => throw(DomainError(expr, "Unsupported syntax"))
         end
     end
 

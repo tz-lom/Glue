@@ -21,11 +21,11 @@ end
 
 @unimplemented U2(AA1)::AA2
 
-@algorithm C1[U2](AA1)::AA2 implement = false
+@algorithm C1(AA1)::AA2 = [U2] implement = false
 
 @invoke_with C1_impl = C1{A1 => AA1,AA2 => A2}
 
-@group G1 U1
+@group G1 = [U1]
 
 
 @testset "substitute" begin

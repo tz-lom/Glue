@@ -22,7 +22,7 @@ end
 
 
 
-@algorithm generated[P1, P2](A1)::A3
+@algorithm generated(A1)::A3 = [P1, P2]
 
 function expected(a::Int)::Int
     return (a + 1) * 10

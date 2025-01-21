@@ -46,10 +46,8 @@ using FunctionFusion
 end
 
 # @template new_location normalize_speed normalize_start compute_new_location
-@algorithm new_location[normalize_speed, normalize_start, compute_new_location](
-    C_Speed,
-    C_Start,
-)::C_End implement = false
+@algorithm new_location(C_Speed, C_Start)::C_End =
+    [normalize_speed, normalize_start, compute_new_location] implement = false
 
 # We would need to apply this algorithm for train A anb B, let's define intermediate artifacts and applications
 
@@ -98,17 +96,17 @@ end
     s
 end
 
-@algorithm compute_in_metric[
-    full_algorithm,
-    substitute(normalize_speed, normalize_speed_metric),
-    substitute(normalize_start, normalize_start_metric),
-](
+@algorithm compute_in_metric(
     TrainALocation,
     TrainASpeed,
     TrainBLocation,
     TrainBSpeed,
     Time,
-)::FinalDistance
+)::FinalDistance = [
+    full_algorithm,
+    substitute(normalize_speed, normalize_speed_metric),
+    substitute(normalize_start, normalize_start_metric),
+]
 
 function expected_in_metric(
     a_location::Float64,
@@ -132,17 +130,17 @@ end
     s * 0.01
 end
 
-@algorithm compute_in_cgs[
-    full_algorithm,
-    substitute(normalize_speed, normalize_speed_cgs),
-    substitute(normalize_start, normalize_start_cgs),
-](
+@algorithm compute_in_cgs(
     TrainALocation,
     TrainASpeed,
     TrainBLocation,
     TrainBSpeed,
     Time,
-)::FinalDistance
+)::FinalDistance = [
+    full_algorithm,
+    substitute(normalize_speed, normalize_speed_cgs),
+    substitute(normalize_start, normalize_start_cgs),
+]
 
 function expected_in_cgs(
     a_location::Float64,

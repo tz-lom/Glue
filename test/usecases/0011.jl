@@ -10,14 +10,13 @@ using FunctionFusion
 
 @provider P2(a::A2)::A3 = "P2($a)"
 
-
 @provider P3(a::A3)::A4 = "P3($a)"
 
-@group G1 P1 P2 P3
+@group G1 = [P1, P2, P3]
 
 @provider P4(a::A3)::A5 = "P4($a)"
 
-@algorithm Alg[G1, P4](A1)::A5
+@algorithm Alg(A1)::A5 = [G1, P4]
 
 @test Alg("A1") == "P4(P2(P1(A1)))"
 

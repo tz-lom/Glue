@@ -9,10 +9,10 @@ using FunctionFusion
 @artifact A1 = Int
 @artifact A2 = Int
 
-@promote P1 A1 A2
+@promote P1(A1)::A2
 
 
-@algorithm generated[P1](A1)::A2
+@algorithm generated(A1)::A2 = [P1]
 
 function expected(a::Int)::Int
     return a

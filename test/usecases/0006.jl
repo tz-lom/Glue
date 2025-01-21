@@ -24,9 +24,9 @@ end
 @conditional C1::A4 = B1 ? A2 : A3
 
 
-@group G1 P1 P2 C1
+@group G1 = [P1, P2, C1]
 
-@algorithm generated[G1](A1, B1)::A4
+@algorithm generated(A1, B1)::A4 = [G1]
 
 
 function expected(a::Int, b::Bool)

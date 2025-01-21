@@ -15,7 +15,7 @@ using FunctionFusion
 # @template C1 P1 P2
 # @implement C1_impl C1 F1_in => A1 A3 => F1_out
 
-@algorithm N1[P1, P2](A1)::A3
+@algorithm N1(A1)::A3 = [P1, P2]
 
 @invoke_with I1 = N1{A1 => F1_in,A3 => F1_out}
 # FunctionFusion.@context I1Context F1_out N1ContextOutputs
@@ -29,7 +29,7 @@ using FunctionFusion
 
 
 
-@algorithm generated[I1](F1_in)::F1_out
+@algorithm generated(F1_in)::F1_out = [I1]
 
 function expected(a::Int)::Int
     return (a + 1) * 10
