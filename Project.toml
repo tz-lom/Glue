@@ -1,7 +1,7 @@
 name = "FunctionFusion"
 uuid = "d89a494f-3841-4324-82bc-a003799788bd"
 authors = ["Yury Nuzhdin <nuzhdin.urii@gmail.com>"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 GraphViz = "f526b714-d49f-11e8-06ff-31ed36ee7ee0"

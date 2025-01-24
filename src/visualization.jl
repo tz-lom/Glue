@@ -293,6 +293,38 @@ function render!(ctx::GraphBuilder, p::CallableProvider; _...)
     return id
 end
 
+function render!(ctx::GraphBuilder, p::CallbackProvider; _...)
+    id, new = get_id(ctx, p, :callback_provider)
+    if new
+        name = short_name(ctx.shortener, p.call)
+
+        descr = short_description(p)
+        if isnothing(descr)
+            descr = ""
+        else
+            descr = "\n$descr"
+        end
+        add_to_cluster!(
+            ctx,
+            node(
+                id;
+                shape = "insulator",
+                label = "$name$descr",
+                style = "filled",
+                color = "#ff8c61",
+                fillcolor = "#faa275",
+            ),
+        )
+        for a in outputs(p)
+            other = render!(ctx, a)
+            connect!(ctx, id, other)
+        end
+        origin = render!(ctx, p.origin)
+        connect!(ctx, id, origin; arrowhead = "none")
+    end
+    return id
+end
+
 function render!(ctx::GraphBuilder, p::PromoteProvider; _...)
     id, new = get_id(ctx, p, :promote)
     if new
