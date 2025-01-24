@@ -86,7 +86,8 @@ function define_context(context_name, artifacts...)
     # struct with fields
     # method `keys`
     # method `key`
-    # method `show` for "text/plain"
+
+    artifacts = filter(x -> x != (), artifacts)
 
     function enum_fields(x::Type{T}) where {T<:Artifact}
         return [T => Union{Nothing,Some{artifact_type(x)}}]

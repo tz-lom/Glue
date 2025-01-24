@@ -10,6 +10,7 @@ export @artifact,
     @group,
     @unimplemented,
     @invoke_with,
+    @callback_provider,
     substitute
 
 import Base
@@ -32,6 +33,7 @@ include("providers/group.jl")
 
 include("providers/algorithm.jl")
 include("providers/invoke_with.jl")
+include("providers/callback.jl")
 
 
 include("substitute.jl")
