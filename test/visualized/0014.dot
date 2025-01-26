@@ -1,0 +1,30 @@
+digraph { layout=dot; compound=true;
+subgraph cluster_provider_1 {
+label="Algorithm Alg2"
+subgraph cluster_provider_1_inputs {
+label="Inputs"
+provider_1__artifact_2 [label="I2\nVector{DataType}",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+} // cluster_provider_1_inputs
+provider_1__artifact_3 [label="A1\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+provider_1__artifact_4 [label="A2\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+provider_1__artifact_5 [label="A3\nInt64",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+subgraph cluster_provider_1_outputs {
+label="Outputs"
+provider_1__artifact_6 [label="O2\nVector{Int64}",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+} // cluster_provider_1_outputs
+ // before providers
+provider_1__provider_7 [shape="rectangle",label="P1",style="filled",color="#ff8c61",fillcolor="#faa275"]
+provider_1__provider_8 [shape="rectangle",label="P2",style="filled",color="#ff8c61",fillcolor="#faa275"]
+provider_1__provider_9 [shape="rectangle",label="P3",style="filled",color="#ff8c61",fillcolor="#faa275"]
+provider_1__switch_provider_10 [shape="folder",label="Switch2",style="filled",color="#ff8c61",fillcolor="#faa275"]
+} // cluster_provider_1
+
+provider_1__provider_7 -> provider_1__artifact_3
+provider_1__provider_8 -> provider_1__artifact_4
+provider_1__provider_9 -> provider_1__artifact_5
+provider_1__switch_provider_10 -> provider_1__artifact_6
+provider_1__artifact_2 -> provider_1__switch_provider_10
+provider_1__artifact_3 -> provider_1__switch_provider_10 [style="dashed"]
+provider_1__artifact_4 -> provider_1__switch_provider_10 [style="dashed"]
+provider_1__artifact_5 -> provider_1__switch_provider_10 [style="dashed"]
+}

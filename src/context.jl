@@ -21,6 +21,8 @@ end
 
 function key end
 
+function type end
+
 # Redirect to the type based keys method
 Base.keys(::T) where {T<:AbstractContext} = Base.keys(T)
 
@@ -64,7 +66,7 @@ function Base.setindex!(c::C, v, ::Type{T}) where {C<:AbstractContext,T<:Artifac
     if !isnothing(getfield(c, key(c, T)))
         error("Artifact [$T] is already set")
     end
-    return setfield!(c, key(c, T), Some(v))
+    return setfield!(c, key(c, T), type(c, T)(v))
 end
 
 function Base.setindex!(
@@ -75,7 +77,11 @@ function Base.setindex!(
     if !isnothing(getfield(c.root, key(c.root, ContextStack{Prev,T})))
         error("Artifact $Prev[$T] is already set")
     end
-    return setfield!(c.root, key(c.root, ContextStack{Prev,T}), Some(v))
+    return setfield!(
+        c.root,
+        key(c.root, ContextStack{Prev,T}),
+        type(c.root, ContextStack{Prev,T})(v),
+    )
 end
 
 
@@ -90,11 +96,11 @@ function define_context(context_name, artifacts...)
     artifacts = filter(x -> x != (), artifacts)
 
     function enum_fields(x::Type{T}) where {T<:Artifact}
-        return [T => Union{Nothing,Some{artifact_type(x)}}]
+        return [T => Some{artifact_type(x)}]
     end
 
     function enum_fields(x::Type{T}, ::Type{Parent}) where {T<:Artifact,Parent}
-        return [ContextStack{Parent,T} => Union{Nothing,Some{artifact_type(x)}}]
+        return [ContextStack{Parent,T} => Some{artifact_type(x)}]
     end
 
     function enum_fields(context::Type{C}) where {C<:AbstractContext}
@@ -120,12 +126,16 @@ function define_context(context_name, artifacts...)
 
     fields_expr = map(enumerate(fields)) do (i, (_, type))
         local name = Symbol(:f, i)
-        :($name::$type)
+        :($name::Union{Nothing,$type})
     end
 
-    key_expr = map(enumerate(fields)) do (i, (name, _))
+    key_expr = map(enumerate(fields)) do (i, (name, type))
         local sym_name = Symbol(:f, i)
-        :($FunctionFusion.key(::$context_name, ::Type{$name}) = $(QuoteNode(sym_name)))
+
+        quote
+            $FunctionFusion.key(::$context_name, ::Type{$name}) = $(QuoteNode(sym_name))
+            $FunctionFusion.type(::$context_name, ::Type{$name}) = $type
+        end
     end
 
     return quote

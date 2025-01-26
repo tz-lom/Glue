@@ -32,7 +32,7 @@ macro artifact(expr::Expr)
 
             return Expr(:block, exprs...)
         end
-        Expr(:(=), [iname::Symbol, itype::Symbol]) => begin
+        Expr(:(=), [iname::Symbol, itype]) => begin
             return define_artifact(iname, itype)
         end
         _ => error("Unsupported syntax: $(dump(expr))")

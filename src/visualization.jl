@@ -519,6 +519,45 @@ function render!(ctx::GraphBuilder, p::InvokeProvider; _...)
 end
 
 
+function render!(ctx::GraphBuilder, p::SwitchProvider; _...)
+    id, new = get_id(ctx, p, :switch_provider)
+    if new
+        name = short_name(ctx.shortener, p.call)
+
+        descr = short_description(p)
+        if isnothing(descr)
+            descr = ""
+        else
+            descr = "\n$descr"
+        end
+        add_to_cluster!(
+            ctx,
+            node(
+                id;
+                shape = "folder",
+                label = "$name$descr",
+                style = "filled",
+                color = "#ff8c61",
+                fillcolor = "#faa275",
+            ),
+        )
+        for a in outputs(p)
+            other = render!(ctx, a)
+            connect!(ctx, id, other)
+        end
+        for a in inputs(p)
+            other = render!(ctx, a)
+            connect!(ctx, other, id)
+        end
+        for a in p.options
+            other = render!(ctx, a)
+            connect!(ctx, other, id; style = "dashed")
+        end
+    end
+    return id
+end
+
+
 # function visualize(lst::Vector)
 #     providers = collect_providers(lst)
 #     g = digraph(compound = "true")
