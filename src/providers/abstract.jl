@@ -30,6 +30,13 @@ Returns all artifacts provided by provider `A`
 function outputs end
 
 """
+    storage(A::AbstractProvider)
+
+Returns storage container necessary for provider `A`
+"""
+function storage end
+
+"""
     provide(A::AbstractProvider, artifact::AbstractArtifact, context, parent::Union{AbstractProvider, Nothing})
 
 Returns Expr which computes requested `artifact` using values from `context` for source

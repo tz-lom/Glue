@@ -26,7 +26,7 @@ function define_callback_provider(name, artifact_name, origin)
     return quote
         $FunctionFusion.@artifact $artifact_name = Any
 
-        function $name()
+        Core.@__doc__ function $name()
             error($("Can't call Callback Provider $name directly"))
         end
         const $descr = $CallbackProvider($name, $artifact_name, $origin_provider)
@@ -35,14 +35,16 @@ function define_callback_provider(name, artifact_name, origin)
     end
 end
 
+"""
+    @callback_provider Name()::CallbackTypeName = ProviderName
+
+Creates artifact `CallbackTypeName` which will point to argumentless function which will return result of `ProviderName`
+"""
 macro callback_provider(expr)
     @match expr begin
         Expr(
             :(=),
-            [
-                Expr(:(::), [Expr(:call, [name::Symbol]), artifact::Symbol]),
-                Expr(:block, [_, origin::Symbol]),
-            ],
+            [Expr(:(::), [Expr(:call, [name]), artifact]), Expr(:block, [_, origin])],
         ) => begin
             quote
                 Base.eval(
