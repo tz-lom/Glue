@@ -76,16 +76,29 @@ macro switch_provider(expr)
     @match expr begin
         Expr(
             :(=),
-            [Expr(:(::), [Expr(:call, [name, input]), output]), Expr(:block, [_, options])],
+            [
+                Expr(:(::), [Expr(:call, [name, input]), output]),
+                Expr(:block, [_, Expr(:vect, options)]),
+            ],
         ) => begin
+
+            artifacts = []
+            input = make_artifact(artifacts, input)
+            output = make_artifact(artifacts, output)
+            @warn "O" options
+            options = map(x -> esc(make_artifact(artifacts, x)), options)
+
+
             quote
+                $(artifacts...)
+
                 Base.eval(
                     $__module__,
                     define_switch_provider(
                         $(QuoteNode(name)),
                         $(esc(input)),
                         $(esc(output)),
-                        $(esc(options)),
+                        [$(options...)],
                     ),
                 )
             end

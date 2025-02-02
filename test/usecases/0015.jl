@@ -16,6 +16,14 @@ P3(x) = x
 
 @provider P3({A5 => X})::{A6 => X}
 
+@conditional P4::{A7 => X} = {A8 => Bool} ? {A9 => X} : {A10 => X}
+
+@promote P5({A11 => X})::{A12 => X}
+
+@unimplemented P6({A13 => X})::{A14 => X}
+
+@switch_provider P7({A15 => Any})::{A16 => Any} = [{A17 => X}, {A18 => X}]
+
 
 # @switch_provider Switch1(I1)::O1 = [A1, A2, A3]
 # @algorithm Alg1(I1)::O1 = [P1, P2, P3, Switch1]
@@ -28,7 +36,7 @@ P3(x) = x
 
 # @test Alg([A]) == [2, 1, 3]
 
-@verifyVisualization([P1, P2, P3], "0015", true)
+@verifyVisualization([P1, P2, P3, P4, P5, P6, P7], "0015")
 
 
 end

@@ -45,9 +45,12 @@ macro unimplemented(func::Expr)
         Expr(:(::), [Expr(:call, [name, inputs...]), output]) => begin
             sname = QuoteNode(name)
             name = esc(name)
-            inputs = map(esc, inputs)
-            output = esc(output)
+            artifacts = []
+            inputs = map(x -> esc(make_artifact(artifacts, x)), inputs)
+            output = esc(make_artifact(artifacts, output))
             return quote
+                $(artifacts...)
+
                 Core.@__doc__ $(name)() =
                     $provide($describe_provider($name), nothing, nothing, nothing)
                 local definition = $FunctionFusion.UnimplementedProvider(
