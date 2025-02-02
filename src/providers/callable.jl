@@ -45,38 +45,42 @@ end
 
 Read the signature of a provider function and return a named tuple with the function's name, result type, and argument types.
 """
-function read_function_signature(func::Expr)
+function read_function_signature(signature::Expr)
+
     # Ensure the expression represents a function definition with an explicit return type
-    if func.head != :function || typeof(func.args[1]) != Expr || func.args[1].head != :(::)
+    if signature.head != :(::)
         throw(
             DomainError(
-                func,
+                signature,
                 "Function must be a function definition with an explicit return type",
             ),
         )
     end
 
-    signature = func.args[1]
+    artifacts = []
     name = signature.args[1].args[1]
-    result = signature.args[2]
+    result = make_artifact(artifacts, signature.args[2])
+
 
     # Extract the argument expressions
     arg_exprs = signature.args[1].args[2:end]
     # Preallocate the array for argument types
-    arguments = Vector{Tuple{Symbol,Symbol}}(undef, length(arg_exprs))
+    arguments = Vector{Tuple{Symbol,Union{Symbol,Expr}}}(undef, length(arg_exprs))
 
     for (i, arg) in enumerate(arg_exprs)
         # Ensure each argument is a type-annotated expression
         if typeof(arg) != Expr || arg.head != :(::)
-            throw(DomainError(func, "Argument #$i must be a type-annotated expression"))
+            throw(
+                DomainError(signature, "Argument #$i must be a type-annotated expression"),
+            )
         end
         # Extract the argument name and type
         arg_name = arg.args[1]
-        arg_type = arg.args[2]
+        arg_type = make_artifact(artifacts, arg.args[2])
         arguments[i] = (arg_name, arg_type)
     end
 
-    return (name = name, result = result, arguments = arguments)
+    return (; name, result, arguments, artifacts)
 end
 
 """
@@ -84,6 +88,9 @@ end
     @provider function name(arg::Artifact, ...)::Artifact
               ...
     end
+
+    # 2
+    @provider name(arg::Artifact, ...)::Artifact = x
 
     # 2
     @provider name(Artifact,...)::Artifact
@@ -95,9 +102,9 @@ Declares a provider with given inputs and output.
 All inputs + output must be unique artifacts.
 
 3 versions of the syntax are supported:
-1 - function definition
-2 - declare existing function as provider
-3 - make an alias to existing function and declare it as a provider
+1 and 2 - function definitions
+3 - declare existing function as provider
+4 - make an alias to existing function and declare it as a provider
 
 """
 macro provider(func::Expr)
@@ -106,9 +113,9 @@ macro provider(func::Expr)
 
     @match func begin
         # Match the expression format of a function definition
-        Expr(:function, _) => begin
+        Expr(:function, [signature, body]) => begin
             # Read the function signature
-            sig = read_function_signature(func)
+            sig = read_function_signature(signature)
 
             # Create a new function signature with artifact types
             new_signature = Expr(
@@ -134,6 +141,8 @@ macro provider(func::Expr)
             output = esc(sig.result)
 
             return quote
+                $(sig.artifacts...)
+
                 Core.@__doc__ $(esc(new_function))
 
                 local definition =
@@ -147,24 +156,34 @@ macro provider(func::Expr)
             end
         end
         # Match the expression format of a short function definition
+
         Expr(:(=), [Expr(:(::), [Expr(:call, [name, args...]), result]), body]) => begin
+            signature = func.args[1]
+            sig = read_function_signature(signature)
+
+            artifacts = []
             new_args =
-                map((arg,) -> Expr(:(::), arg.args[1], extract_type(arg.args[2])), args)
-            inputs = map((arg) -> esc(arg.args[2]), args)
-            output = extract_type(result)
+                map((arg,) -> Expr(:(::), arg[1], extract_type(arg[2])), sig.arguments)
+            inputs = map((arg) -> esc(arg[2]), sig.arguments)
+            output = extract_type(sig.result)
 
-            esc_name = esc(name)
+            esc_name = esc(sig.name)
 
-            new_function =
-                Expr(:(=), Expr(:(::), Expr(:call, name, new_args...), output), body)
+            new_function = Expr(
+                :(=),
+                Expr(:(::), Expr(:call, sig.name, new_args...), output),
+                body,
+            )
 
             return quote
+                $(sig.artifacts...)
+
                 Core.@__doc__ $(esc(new_function))
 
                 local definition = $FunctionFusion.CallableProvider(
                     $esc_name,
                     ($(inputs...),),
-                    $(esc(result)),
+                    $(esc(sig.result)),
                 )
 
                 function $FunctionFusion.describe_provider(::typeof($esc_name))
@@ -178,10 +197,13 @@ macro provider(func::Expr)
         # Match the expression format of a pre-defined function with inputs and output
         Expr(:(::), [Expr(:call, [name, inputs...]), output]) => begin
             name = esc(name)
-            inputs = map(esc, inputs)
-            output = esc(output)
+            artifacts = []
+            inputs = map(x -> esc(make_artifact(artifacts, x)), inputs)
+            output = esc(make_artifact(artifacts, output))
             docname = gensym(:doc)
             return quote
+                $(artifacts...)
+
                 Core.@__doc__ $(esc(docname))() = nothing
                 local definition =
                     $FunctionFusion.CallableProvider($name, ($(inputs...),), $output)
@@ -199,10 +221,12 @@ macro provider(func::Expr)
             qname = QuoteNode(name)
             name = esc(name)
             alias = esc(alias)
-            inputs = map(esc, inputs)
-            output = esc(output)
+            artifacts = []
+            inputs = map(x -> esc(make_artifact(artifacts, x)), inputs)
+            output = esc(make_artifact(artifacts, output))
             def = gensym(:definition)
             return quote
+                $(artifacts...)
 
                 Core.@__doc__ $name(args...) = $alias(args...)
 
