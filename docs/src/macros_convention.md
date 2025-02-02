@@ -3,6 +3,10 @@
 Macros of FunctionFusion follow the syntax convention that helps to memoize and write them.
 Here are those conventions:
 
+## In place Artifact definition
+
+Instead of defining Artifact with `@artifact` macro before using it, you can define it in place with `{Name=>Type}` syntax.
+
 ## Function-like
 
 If macro defines callable entity then it will follow function like syntax.

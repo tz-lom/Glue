@@ -68,12 +68,14 @@ macro conditional(e::Expr)
         ) => begin
             sname = QuoteNode(name)
 
+            artifacts = []
             name = esc(name)
-            condition = esc(condition)
-            if_true = esc(if_true)
-            if_false = esc(if_false)
-            output = esc(output)
+            condition = esc(make_artifact(artifacts, condition))
+            if_true = esc(make_artifact(artifacts, if_true))
+            if_false = esc(make_artifact(artifacts, if_false))
+            output = esc(make_artifact(artifacts, output))
             return quote
+                $(artifacts...)
                 function $name() end #@todo: implement conditional here
 
                 local definition = FunctionFusion.ConditionalProvider(

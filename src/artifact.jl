@@ -2,13 +2,21 @@ abstract type Artifact{T} end
 
 real_type(::Type{Artifact{T}}) where {T} = T
 
-function define_artifact(iname, itype)
+function define_artifact(iname, itype; doc = false)
     name = esc(iname)
     type = esc(itype)
-    return quote
-        Core.@__doc__ struct $name <: Artifact{$type}
+    expr = quote
+        struct $name <: Artifact{$type}
             $name(args...) = $type(args...)
         end
+    end
+
+    if doc
+        return quote
+            Core.@__doc__ $expr
+        end
+    else
+        return expr
     end
 end
 
@@ -27,13 +35,13 @@ macro artifact(expr::Expr)
     @match expr begin
         Expr(:(=), [Expr(:tuple, inames), itype]) => begin
             exprs = map(inames) do iname
-                define_artifact(iname, itype)
+                define_artifact(iname, itype; doc = true)
             end
 
             return Expr(:block, exprs...)
         end
         Expr(:(=), [iname::Symbol, itype]) => begin
-            return define_artifact(iname, itype)
+            return define_artifact(iname, itype; doc = true)
         end
         _ => error("Unsupported syntax: $(dump(expr))")
     end

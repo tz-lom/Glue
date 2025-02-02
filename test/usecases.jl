@@ -67,8 +67,8 @@ function verifyEquals(generated, expected, arguments...)
 end
 
 
-function verifyVisualization(mod, to_visualize, expected)
-    update = haskey(ENV, "UPDATE_VISUAL_TESTS")
+function verifyVisualization(mod, to_visualize, expected, update)
+    update = update || haskey(ENV, "UPDATE_VISUAL_TESTS")
     dot = FunctionFusion.as_dot(to_visualize; mod)
 
     expected_dot = joinpath(@__DIR__, "visualized", expected * ".dot")
@@ -93,8 +93,15 @@ function verifyVisualization(mod, to_visualize, expected)
 
 end
 
-macro verifyVisualization(to_visualize, expected)
-    return esc(:($verifyVisualization($__module__, $to_visualize, $expected)))
+macro verifyVisualization(to_visualize, expected, update_visualization = false)
+    return esc(
+        :($verifyVisualization(
+            $__module__,
+            $to_visualize,
+            $expected,
+            $update_visualization,
+        )),
+    )
 end
 
 end

@@ -40,10 +40,13 @@ Both Artifacts have to share same data type.
 macro promote(expr)
     return @match expr begin
         Expr(:(::), [Expr(:call, [name, input]), output]) => begin
+            artifacts = []
             name = esc(name)
-            input = esc(input)
-            output = esc(output)
+            input = esc(make_artifact(artifacts, input))
+            output = esc(make_artifact(artifacts, output))
             return quote
+                $(artifacts...)
+
                 $name(a::$artifact_type($input))::$artifact_type($output) = a
 
                 const provider = FunctionFusion.PromoteProvider($name, $input, $output)

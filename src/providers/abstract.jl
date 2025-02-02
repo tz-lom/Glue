@@ -121,3 +121,14 @@ function short_description(p::AbstractProvider)
     #     return descr
     # end
 end
+
+
+function make_artifact(artifacts, expr)
+    return @match expr begin
+        Expr(:braces, [Expr(:call, [:(=>), name, type])]) => begin
+            push!(artifacts, define_artifact(name, type))
+            return name
+        end
+        _ => expr
+    end
+end

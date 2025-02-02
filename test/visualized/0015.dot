@@ -1,0 +1,46 @@
+digraph { layout=dot; compound=true;
+provider_1 [shape="rectangle",label="P1",style="filled",color="#ff8c61",fillcolor="#faa275"]
+artifact_2 [label="A2\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+artifact_3 [label="A1\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+provider_4 [shape="rectangle",label="P2",style="filled",color="#ff8c61",fillcolor="#faa275"]
+artifact_5 [label="A4\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+artifact_6 [label="A3\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+provider_7 [shape="rectangle",label="P3",style="filled",color="#ff8c61",fillcolor="#faa275"]
+artifact_8 [label="A6\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+artifact_9 [label="A5\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+conditional_10 [shape="diamond",label="P4",style="filled",color="#b23a48",fillcolor="#fcb902"]
+artifact_11 [label="A8\nBool",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+artifact_12 [label="A9\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+artifact_13 [label="A10\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+artifact_14 [label="A7\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+promote_15 [shape="rpromoter",label="P5",style="filled",color="#ff8c61",fillcolor="#faa275"]
+artifact_16 [label="A12\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+artifact_17 [label="A11\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+unimplemented_18 [shape="rectangle",label="Unimplemented P6",color="#ff8c61"]
+artifact_19 [label="A14\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+artifact_20 [label="A13\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+switch_provider_21 [shape="folder",label="P7",style="filled",color="#ff8c61",fillcolor="#faa275"]
+artifact_22 [label="A16\nAny",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+artifact_23 [label="A15\nAny",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+artifact_24 [label="A17\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+artifact_25 [label="A18\nString",shape="ellipse",style="filled",color="#4a7c59",fillcolor="#8fc0a9"]
+
+provider_1 -> artifact_2
+artifact_3 -> provider_1
+provider_4 -> artifact_5
+artifact_6 -> provider_4
+provider_7 -> artifact_8
+artifact_9 -> provider_7
+artifact_11 -> conditional_10 [label="?"]
+artifact_12 -> conditional_10 [label="true"]
+artifact_13 -> conditional_10 [label="false"]
+conditional_10 -> artifact_14
+promote_15 -> artifact_16
+artifact_17 -> promote_15
+unimplemented_18 -> artifact_19
+artifact_20 -> unimplemented_18
+switch_provider_21 -> artifact_22
+artifact_23 -> switch_provider_21
+artifact_24 -> switch_provider_21 [style="dashed"]
+artifact_25 -> switch_provider_21 [style="dashed"]
+}
