@@ -1,6 +1,8 @@
+# FunctionFusion
 
-FunctionFusion: Algorithm Composition Made Simple
-Welcome to FunctionFusion, a Julia package designed to empower you to build, modify, and optimize algorithms with ease. FunctionFusion provides a flexible and intuitive framework for composing complex algorithms from smaller, reusable blocks. Whether you're prototyping a new idea, experimenting with different algorithmic approaches, or optimizing an existing workflow, FunctionFusion makes it easy to assemble, modify, and refine your algorithms.
+FunctionFusion is a Julia package designed to empower you to build, modify, and optimize algorithms with ease.
+FunctionFusion provides a flexible and intuitive framework for composing complex algorithms from smaller, reusable blocks.
+Whether you're prototyping a new idea, experimenting with different algorithmic approaches, or optimizing an existing workflow, FunctionFusion makes it easy to assemble, modify, and refine your algorithms.
 
 Why FunctionFusion?
 Algorithms are often built by combining smaller, well-defined components. However, managing these components and their interactions can become cumbersome, especially when you want to experiment with different configurations or replace parts of the algorithm. FunctionFusion simplifies this process by providing a unified interface for:
